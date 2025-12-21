@@ -57,7 +57,7 @@ struct User: Codable {
 
 @Suite(.serialized, .playbackIsolated(replaysFrom: Bundle.module))
 struct MyAPITests {
-    @Test(.replay("fetchUser", matching: .method, .path))
+    @Test(.replay("fetchUser"))
     func fetchUser() async throws {
         let (data, _) = try await URLSession.shared.data(
             from: URL(string: "https://api.example.com/users/42")!
@@ -87,7 +87,7 @@ private final class TestBundleToken {}
     )
 )
 struct MyAPITests {
-    @Test(.replay("fetchUser", matching: .method, .path))
+    @Test(.replay("fetchUser"))
     func fetchUser() async throws {
         let (data, _) = try await URLSession.shared.data(
             from: URL(string: "https://api.example.com/users/42")!
@@ -197,7 +197,7 @@ struct User: Codable {
 
 @Suite(.serialized, .playbackIsolated(replaysFrom: Bundle.module))
 struct ExampleAPITests {
-    @Test(.replay("fetchUser", matching: .method, .path))
+    @Test(.replay("fetchUser"))
     func fetchUser() async throws {
         let client = ExampleAPIClient()
         let user = try await client.fetchUser(id: 42)

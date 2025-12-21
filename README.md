@@ -227,17 +227,18 @@ REPLAY_MODE=record swift test --filter ExampleAPITests.fetchUser
 
 This will create `Replays/fetchUser.har`.
 
-### 5a) Run against the live API (skip replay + no recording)
-
-If you want to run tests against a real (production/staging) API without touching fixtures,
-keep your `.replay("…")` traits in place and pass:
-
-```bash
-REPLAY_MODE=live swift test --filter ExampleAPITests.fetchUser
-```
-
-- **No fixture required**: missing `Replays/*.har` won’t fail the test.
-- **No fixture writes**: nothing is recorded or modified.
+> [!TIP]
+> **Run against the live API (skip replay + no recording)**
+>
+> If you want to run tests against a real (production/staging) API without touching fixtures,
+> keep your `.replay("…")` traits in place and pass:
+>
+> ```bash
+> REPLAY_MODE=live swift test --filter ExampleAPITests.fetchUser
+> ```
+>
+> - **No fixture required**: missing `Replays/*.har` won’t fail the test.
+> - **No fixture writes**: nothing is recorded or modified.
 
 ### 6) Re-run (back to playback-only)
 
@@ -437,14 +438,7 @@ swift package replay validate Tests/YourTests/Replays/fetchUser.har
 
 # Filter sensitive data from an existing HAR
 swift package replay filter input.har output.har --headers Authorization --query-params token
-
-# Clean up orphaned archives
-swift package replay clean --dry-run
-swift package replay clean
 ```
-
-> [!TIP]
-> `clean` is intentionally conservative — it only considers explicitly named archives referenced as `.replay("name")` in `Tests/**/*.swift`.
 
 ## Troubleshooting
 

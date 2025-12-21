@@ -13,7 +13,6 @@ struct ReplayCommand: AsyncParsableCommand {
             FilterCommand.self,
             Record.self,
             Status.self,
-            Clean.self,
         ]
     )
 
@@ -253,65 +252,6 @@ struct ReplayCommand: AsyncParsableCommand {
             }
 
             return map
-        }
-    }
-
-    // MARK: - Clean
-
-    struct Clean: AsyncParsableCommand {
-        static let configuration = CommandConfiguration(
-            abstract: "Delete orphaned replay archives"
-        )
-
-        @Option(name: .long, help: "Path to search for replay archives (recursively)")
-        var directory: String = "Tests"
-
-        @Option(name: .long, help: "Path to search for tests (used to detect named archives)")
-        var tests: String = "Tests"
-
-        @Flag(name: .shortAndLong, help: "Perform deletion (default is dry-run)")
-        var force: Bool = false
-
-        func run() async throws {
-            let dirURL = URL(fileURLWithPath: directory)
-            let testsURL = URL(fileURLWithPath: tests)
-            let fileManager = FileManager.default
-
-            let archives = findHARFiles(in: dirURL, fileManager: fileManager)
-            let referencedNames = referencedReplayNames(in: testsURL, fileManager: fileManager)
-
-            let orphans = archives.filter { url in
-                let name = url.deletingPathExtension().lastPathComponent
-                return !referencedNames.contains(name)
-            }
-
-            if orphans.isEmpty {
-                print("No orphaned archives found.")
-                return
-            }
-
-            if !force {
-                print("Dry run: would delete \(orphans.count) orphaned archive(s):")
-                for url in orphans {
-                    print("  \(url.path)")
-                }
-                print()
-                print("Use --force to delete.")
-                return
-            }
-
-            var deleted = 0
-            for url in orphans {
-                do {
-                    try fileManager.removeItem(at: url)
-                    deleted += 1
-                    print("Deleted \(url.path)")
-                } catch {
-                    print("Failed to delete \(url.path): \(error)")
-                }
-            }
-
-            print("Deleted \(deleted) orphaned archive(s).")
         }
     }
 

@@ -64,7 +64,7 @@ struct ExampleAPIClient {
 ///
 /// To record new fixtures for real APIs:
 /// ```
-/// swift test --filter ExampleAPITests --enable-replay-recording
+/// env REPLAY_MODE=record swift test --filter ExampleAPITests
 /// ```
 @Suite("Example API Tests", .serialized, .playbackIsolated(replaysFrom: Bundle.module))
 struct ExampleAPITests {
@@ -132,6 +132,18 @@ struct ReplayErrorHandlingTests {
 
     @Test("Missing archive provides helpful error message")
     func missingArchiveError() async throws {
+        // Force playback mode so this test is stable even when the overall test run
+        // is configured for recording or live network.
+        let previous = getenv("REPLAY_MODE").map { String(cString: $0) }
+        setenv("REPLAY_MODE", "playback", 1)
+        defer {
+            if let previous {
+                setenv("REPLAY_MODE", previous, 1)
+            } else {
+                unsetenv("REPLAY_MODE")
+            }
+        }
+
         let trait = ReplayTrait("this_archive_does_not_exist")
 
         do {
@@ -144,7 +156,7 @@ struct ReplayErrorHandlingTests {
         } catch let error as ReplayError {
             let description = error.description
             #expect(description.contains("Replay Archive Missing"))
-            #expect(description.contains("--enable-replay-recording"))
+            #expect(description.contains("REPLAY_MODE=record"))
         }
     }
 

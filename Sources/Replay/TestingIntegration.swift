@@ -8,8 +8,10 @@ import Foundation
     /// A Swift Testing trait that enables Replay for the duration of a test or suite.
     ///
     /// By default, Replay runs in playback-only mode and will fail if the archive is missing.
-    /// Recording is an explicit action, enabled via the `--enable-replay-recording`
-    /// command line argument.
+    /// Recording is an explicit action, enabled via `REPLAY_MODE=record` (or `REPLAY_RECORDING=1`).
+    ///
+    /// To run the test against the live network (ignoring fixtures and without recording),
+    /// set `REPLAY_MODE=live` (or `REPLAY_LIVE=1`).
     public struct ReplayTrait: TestTrait, SuiteTrait, TestScoping {
         private let archiveName: String?
         private let stubs: [Stub]?
@@ -68,7 +70,10 @@ import Foundation
             if stubs == nil, !archiveExists && mode == .playback {
                 let instructions = """
                     To record this test's HTTP traffic, run:
-                      swift test --filter \(testName) --enable-replay-recording
+                      env REPLAY_MODE=record swift test --filter \(testName)
+
+                    To run against the live network (skip replay + no recording), run:
+                      env REPLAY_MODE=live swift test --filter \(testName)
                     """
 
                 throw ReplayError.archiveMissing(
@@ -78,10 +83,20 @@ import Foundation
                 )
             }
 
-            let playbackMode: PlaybackConfiguration.Mode = (stubs == nil && mode == .record) ? .record : .strict
+            let playbackMode: PlaybackConfiguration.Mode
+            let source: PlaybackConfiguration.Source
+
+            if stubs == nil, mode == .live {
+                // Live mode: ignore fixtures entirely, pass through to network, and do not record.
+                playbackMode = .passthrough
+                source = .entries([])
+            } else {
+                playbackMode = (stubs == nil && mode == .record) ? .record : .strict
+                source = stubs.map { .stubs($0) } ?? .file(archiveURL)
+            }
 
             let config = PlaybackConfiguration(
-                source: stubs.map { .stubs($0) } ?? .file(archiveURL),
+                source: source,
                 mode: playbackMode,
                 matchers: matchers,
                 filters: filters
@@ -125,7 +140,10 @@ import Foundation
             if stubs == nil, !archiveExists && mode == .playback {
                 let instructions = """
                     To record this test's HTTP traffic, run:
-                      swift test --filter \(testName) --enable-replay-recording
+                      env REPLAY_MODE=record swift test --filter \(testName)
+
+                    To run against the live network (skip replay + no recording), run:
+                      env REPLAY_MODE=live swift test --filter \(testName)
                     """
 
                 throw ReplayError.archiveMissing(
@@ -135,10 +153,19 @@ import Foundation
                 )
             }
 
-            let playbackMode: PlaybackConfiguration.Mode = (stubs == nil && mode == .record) ? .record : .strict
+            let playbackMode: PlaybackConfiguration.Mode
+            let source: PlaybackConfiguration.Source
+
+            if stubs == nil, mode == .live {
+                playbackMode = .passthrough
+                source = .entries([])
+            } else {
+                playbackMode = (stubs == nil && mode == .record) ? .record : .strict
+                source = stubs.map { .stubs($0) } ?? .file(archiveURL)
+            }
 
             let config = PlaybackConfiguration(
-                source: stubs.map { .stubs($0) } ?? .file(archiveURL),
+                source: source,
                 mode: playbackMode,
                 matchers: matchers,
                 filters: filters

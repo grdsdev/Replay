@@ -87,13 +87,13 @@ struct ReplayErrorTests {
             let error = ReplayError.archiveMissing(
                 path: url,
                 testName: "testUserAuthentication",
-                instructions: "Run swift test --filter testUserAuthentication --enable-replay-recording"
+                instructions: "Run env REPLAY_MODE=record swift test --filter testUserAuthentication"
             )
 
             #expect(error.description.contains("Archive Missing"))
             #expect(error.description.contains("/tests/fixtures/test.har"))
             #expect(error.description.contains("testUserAuthentication"))
-            #expect(error.description.contains("--enable-replay-recording"))
+            #expect(error.description.contains("REPLAY_MODE=record"))
         }
     }
 

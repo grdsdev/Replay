@@ -348,8 +348,10 @@ struct ReplayCommand: AsyncParsableCommand {
                 "test",
                 "--filter",
                 filter,
-                "--enable-replay-recording",
             ]
+            var env = ProcessInfo.processInfo.environment
+            env["REPLAY_MODE"] = "record"
+            process.environment = env
 
             try process.run()
             process.waitUntilExit()

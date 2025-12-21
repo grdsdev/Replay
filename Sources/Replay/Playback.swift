@@ -167,8 +167,19 @@ public actor PlaybackStore {
 
         switch config.source {
         case .file(let url):
-            let log = try HAR.load(from: url)
-            entries = log.entries
+            do {
+                let log = try HAR.load(from: url)
+                entries = log.entries
+            } catch {
+                // For record/passthrough workflows, missing archives should not be fatal.
+                // Strict playback should still surface missing files as an error.
+                switch config.mode {
+                case .record, .passthrough:
+                    entries = []
+                case .strict:
+                    throw error
+                }
+            }
 
         case .log(let log):
             entries = log.entries

@@ -44,14 +44,17 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
                 This request was not found in the replay archive.
 
                 Options:
-                1. Update the archive with new requests:
-                   swift test --filter <test-name> --enable-replay-recording
+                1. Run against the live network (skip replay + no recording):
+                   REPLAY_MODE=live swift test --filter <test-name>
 
-                2. Check if request details changed (URL, method, headers)
+                2. Update the archive with new requests:
+                   REPLAY_MODE=record swift test --filter <test-name>
+
+                3. Check if request details changed (URL, method, headers)
                    and update test expectations
 
-                3. Inspect the archive:
-                   replay inspect \(archivePath)
+                4. Inspect the archive:
+                   swift package replay inspect \(archivePath)
                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 """
 

@@ -222,10 +222,22 @@ Enable recording for a single test (recommended), or an entire suite:
 
 ```bash
 # Record one test
-swift test --filter ExampleAPITests.fetchUser --enable-replay-recording
+env REPLAY_MODE=record swift test --filter ExampleAPITests.fetchUser
 ```
 
 This will create `Replays/fetchUser.har`.
+
+### 5a) Run against the live API (skip replay + no recording)
+
+If you want to run tests against a real (production/staging) API without touching fixtures,
+keep your `.replay("…")` traits in place and pass:
+
+```bash
+env REPLAY_MODE=live swift test --filter ExampleAPITests.fetchUser
+```
+
+- **No fixture required**: missing `Replays/*.har` won’t fail the test.
+- **No fixture writes**: nothing is recorded or modified.
 
 ### 6) Re-run (back to playback-only)
 
@@ -442,7 +454,7 @@ This is expected on first run (unless you’ve already created `Replays/<name>.h
 Record intentionally for the failing test:
 
 ```bash
-swift test --filter <your-test-name> --enable-replay-recording
+env REPLAY_MODE=record swift test --filter <your-test-name>
 ```
 
 ### “No Matching Entry in Archive”
@@ -459,7 +471,7 @@ swift package replay inspect path/to/archive.har
 
 ## CI guidance
 
-- Replay only records when explicitly enabled (`--enable-replay-recording`), so your CI runs stay playback-only by default.
+- Replay only records when explicitly enabled (for example `REPLAY_MODE=record`), so your CI runs stay playback-only by default.
 - Commit fixtures and keep them reviewed/redacted, just like any other test asset.
 
 ## Creating HAR files from browser sessions

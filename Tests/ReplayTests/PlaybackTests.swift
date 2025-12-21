@@ -205,6 +205,25 @@ struct PlaybackTests {
             #expect(entries.count == 1)
         }
 
+        @Test("configure with missing file throws in strict mode")
+        func configureWithMissingFileStrictThrows() async {
+            let store = PlaybackStore()
+            let url = URL(fileURLWithPath: "/tmp/replay-missing-\(UUID().uuidString).har")
+
+            await #expect(throws: Error.self) {
+                try await store.configure(PlaybackConfiguration(source: .file(url), mode: .strict))
+            }
+        }
+
+        @Test("configure with missing file succeeds in record mode")
+        func configureWithMissingFileRecordSucceeds() async throws {
+            let store = PlaybackStore()
+            let url = URL(fileURLWithPath: "/tmp/replay-missing-\(UUID().uuidString).har")
+
+            try await store.configure(PlaybackConfiguration(source: .file(url), mode: .record))
+            #expect(await store.getAvailableEntries().isEmpty)
+        }
+
         @Test("getAvailableEntries returns configured entries")
         func getAvailableEntries() async throws {
             let store = PlaybackStore()

@@ -160,7 +160,7 @@ struct ReplayTraitTests {
     @Test("RecordingMode respects environment")
     func recordingModeRespectsEnvironment() {
         let mode = RecordingMode.current
-        #expect(mode == .playback || mode == .record)
+        #expect(mode == .playback || mode == .record || mode == .live)
     }
 
     // MARK: - Helpers

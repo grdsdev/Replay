@@ -52,6 +52,10 @@ let package = Package(
         ),
         .testTarget(
             name: "ReplayTests",
+            dependencies: ["Replay"]
+        ),
+        .testTarget(
+            name: "IntegrationTests",
             dependencies: ["Replay"],
             resources: [
                 .copy("Replays")

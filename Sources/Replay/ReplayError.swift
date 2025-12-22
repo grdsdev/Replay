@@ -29,7 +29,8 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
     /// Expected replay archive is missing for a test.
     case archiveMissing(path: URL, testName: String, instructions: String)
 
-    public var description: String {
+    /// The full formatted error message
+    private var formattedMessage: String {
         switch self {
         case .notConfigured:
             return "Replay not configured. Call Playback.session() or use @Test(.replay) trait."
@@ -115,8 +116,35 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
         }
     }
 
+    public var description: String {
+        formattedMessage
+    }
+
     public var errorDescription: String? {
-        description
+        switch self {
+        case .notConfigured:
+            return "Replay Not Configured"
+        case .noMatchingEntry:
+            return "No Matching Entry"
+        case .noMatchingStub:
+            return "No Matching Stub"
+        case .invalidRequest:
+            return "Invalid Request"
+        case .invalidResponse:
+            return "Invalid Response"
+        case .invalidURL:
+            return "Invalid URL"
+        case .invalidBase64:
+            return "Invalid Base64"
+        case .archiveNotFound:
+            return "Archive Not Found"
+        case .archiveMissing:
+            return "Archive Missing"
+        }
+    }
+
+    public var failureReason: String? {
+        formattedMessage
     }
 
     // MARK: - CustomNSError
@@ -140,6 +168,13 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
     }
 
     public var errorUserInfo: [String: Any] {
-        [NSLocalizedDescriptionKey: description]
+        var userInfo: [String: Any] = [:]
+        if let errorDescription {
+            userInfo[NSLocalizedDescriptionKey] = errorDescription
+        }
+        if let failureReason {
+            userInfo[NSLocalizedFailureReasonErrorKey] = failureReason
+        }
+        return userInfo
     }
 }

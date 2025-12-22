@@ -30,6 +30,9 @@ struct ReplayErrorTests {
             #expect(error.description.contains("https://api.example.com/users"))
             #expect(error.description.contains("/path/to/archive.har"))
             #expect(error.description.contains("No Matching Entry"))
+            
+            #expect(error.errorDescription == "No Matching Entry")
+            #expect(error.failureReason?.contains("GET") == true)
         }
 
         @Test("noMatchingStub error")
@@ -45,6 +48,9 @@ struct ReplayErrorTests {
             #expect(error.description.contains("No Matching Stub"))
             #expect(error.description.contains("Available Stubs"))
             #expect(error.description.contains("GET https://example.com/api"))
+            
+            #expect(error.errorDescription == "No Matching Stub")
+            #expect(error.failureReason?.contains("POST") == true)
         }
 
         @Test("invalidRequest error")
@@ -145,28 +151,17 @@ struct ReplayErrorTests {
 
     @Suite("LocalizedError")
     struct LocalizedErrorTests {
-        @Test("errorDescription matches description")
-        func errorDescriptionMatchesDescription() {
-            let errors: [ReplayError] = [
-                .notConfigured,
-                .noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har"),
-                .noMatchingStub(
-                    method: "GET", url: "https://example.com", availableStubs: "  • GET https://example.com"),
-                .invalidRequest("reason"),
-                .invalidResponse,
-                .invalidURL("url"),
-                .invalidBase64("data"),
-                .archiveNotFound(URL(fileURLWithPath: "/file.har")),
-                .archiveMissing(
-                    path: URL(fileURLWithPath: "/file.har"),
-                    testName: "test",
-                    instructions: "instructions"
-                ),
-            ]
-
-            for error in errors {
-                #expect(error.errorDescription == error.description)
-            }
+        @Test("errorDescription returns concise summary")
+        func errorDescriptionConciseSummary() {
+            #expect(ReplayError.notConfigured.errorDescription == "Replay Not Configured")
+            #expect(ReplayError.noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har").errorDescription == "No Matching Entry")
+            #expect(ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "").errorDescription == "No Matching Stub")
+            #expect(ReplayError.invalidRequest("reason").errorDescription == "Invalid Request")
+            #expect(ReplayError.invalidResponse.errorDescription == "Invalid Response")
+            #expect(ReplayError.invalidURL("url").errorDescription == "Invalid URL")
+            #expect(ReplayError.invalidBase64("data").errorDescription == "Invalid Base64")
+            #expect(ReplayError.archiveNotFound(URL(fileURLWithPath: "/file.har")).errorDescription == "Archive Not Found")
+            #expect(ReplayError.archiveMissing(path: URL(fileURLWithPath: "/file.har"), testName: "test", instructions: "instructions").errorDescription == "Archive Missing")
         }
 
         @Test("errorDescription is non-nil")
@@ -236,7 +231,7 @@ struct ReplayErrorTests {
             #expect(codes.count == errors.count)
         }
 
-        @Test("errorUserInfo contains localized description")
+        @Test("errorUserInfo contains localized description and failure reason")
         func errorUserInfoContainsDescription() {
             let error = ReplayError.noMatchingEntry(
                 method: "GET",
@@ -246,10 +241,11 @@ struct ReplayErrorTests {
 
             let userInfo = error.errorUserInfo
             let description = userInfo[NSLocalizedDescriptionKey] as? String
+            let failureReason = userInfo[NSLocalizedFailureReasonErrorKey] as? String
 
-            #expect(description != nil)
-            #expect(description == error.description)
-            #expect(description?.contains("No Matching Entry") == true)
+            #expect(description == "No Matching Entry")
+            #expect(failureReason == error.description)
+            #expect(failureReason?.contains("No Matching Entry") == true)
         }
 
         @Test("bridges to NSError with proper description")
@@ -264,10 +260,9 @@ struct ReplayErrorTests {
 
             #expect(nsError.domain == "Replay.ReplayError")
             #expect(nsError.code == 1)
-            #expect(nsError.localizedDescription == replayError.description)
-            #expect(nsError.localizedDescription.contains("GET"))
-            #expect(nsError.localizedDescription.contains("https://api.example.com/users?limit=2"))
-            #expect(nsError.localizedDescription.contains("No Matching Entry"))
+            #expect(nsError.localizedDescription == "No Matching Entry")
+            #expect(nsError.localizedFailureReason == replayError.description)
+            #expect(nsError.localizedFailureReason?.contains("GET") == true)
         }
     }
 

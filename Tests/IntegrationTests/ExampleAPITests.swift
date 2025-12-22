@@ -198,8 +198,8 @@ struct ReplayErrorHandlingTests {
             Issue.record("Expected noMatchingEntry error")
         } catch let error {
             // URLSession may wrap ReplayError in NSError
-            // Try to extract description, but if wrapped, verify it's a ReplayError by domain
             if let replayError = error as? ReplayError {
+                // Direct ReplayError
                 let description = replayError.description
                 #expect(description.contains("No Matching Entry"))
                 #expect(description.contains("/unknown"))
@@ -207,11 +207,11 @@ struct ReplayErrorHandlingTests {
                 nsError.domain == "Replay.ReplayError"
             {
                 // URLSession wrapped the error - verify it's a ReplayError
-                // The full description isn't accessible when wrapped by URLSession,
-                // but the domain confirms it's the correct error type
                 #expect(nsError.domain == "Replay.ReplayError")
-                // This test verifies that strict mode throws on unmatched requests,
-                // which we've confirmed by the error domain
+                #expect(nsError.localizedDescription == "No Matching Entry")
+                // Verify the detailed message is in failureReason
+                #expect(nsError.localizedFailureReason?.contains("No Matching Entry") == true)
+                #expect(nsError.localizedFailureReason?.contains("/unknown") == true)
             } else {
                 throw error  // Not a ReplayError, re-throw
             }

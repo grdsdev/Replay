@@ -2,14 +2,15 @@ import Foundation
 
 /// Errors thrown by Replay during capture, playback, and testing.
 public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedError, CustomNSError {
+    // MARK: - Configuration Errors
+
     /// Replay has not been configured (e.g. PlaybackStore missing configuration).
     case notConfigured
 
-    /// No matching entry was found for a request in a given archive.
-    case noMatchingEntry(method: String, url: String, archivePath: String)
+    /// Invalid recording mode value in environment variable.
+    case invalidRecordingMode(String)
 
-    /// No matching stub was found for a request.
-    case noMatchingStub(method: String, url: String, availableStubs: String)
+    // MARK: - Validation Errors
 
     /// Invalid request construction or conversion.
     case invalidRequest(String)
@@ -23,17 +24,66 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
     /// Failed to decode base64 body text.
     case invalidBase64(String)
 
+    // MARK: - Archive Errors
+
     /// HAR archive not found at expected URL.
     case archiveNotFound(URL)
 
     /// Expected replay archive is missing for a test.
     case archiveMissing(path: URL, testName: String, instructions: String)
 
+    /// No matching entry was found for a request in a given archive.
+    case noMatchingEntry(method: String, url: String, archivePath: String)
+
+    // MARK: - Stub Errors
+
+    /// No matching stub was found for a request.
+    case noMatchingStub(method: String, url: String, availableStubs: String)
+
     /// The full formatted error message
     private var formattedMessage: String {
         switch self {
         case .notConfigured:
             return "Replay not configured. Call Playback.session() or use @Test(.replay) trait."
+
+        case .invalidRecordingMode(let value):
+            return """
+                Invalid recording mode: "\(value)"
+
+                Valid values for REPLAY_MODE are: playback, record, live
+                """
+
+        case .invalidRequest(let reason):
+            return "Invalid request: \(reason)"
+
+        case .invalidResponse:
+            return "Received non-HTTP response"
+
+        case .invalidURL(let url):
+            return "Invalid URL: \(url)"
+
+        case .invalidBase64(let text):
+            return "Failed to decode base64: \(text.prefix(50))..."
+
+        case .archiveNotFound(let url):
+            return "HAR archive not found at: \(url.path)"
+
+        case .archiveMissing(let path, let testName, let instructions):
+            return """
+
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                ⚠️  Replay Archive Missing
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                Test: \(testName)
+                Expected archive: \(path.path)
+
+                \(instructions)
+
+                Note: Archives are NOT created automatically to prevent
+                accidental recording of incorrect responses.
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                """
 
         case .noMatchingEntry(let method, let url, let archivePath):
             return """
@@ -81,38 +131,6 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
                 2. Add a new stub for this request.
                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 """
-
-        case .invalidRequest(let reason):
-            return "Invalid request: \(reason)"
-
-        case .invalidResponse:
-            return "Received non-HTTP response"
-
-        case .invalidURL(let url):
-            return "Invalid URL: \(url)"
-
-        case .invalidBase64(let text):
-            return "Failed to decode base64: \(text.prefix(50))..."
-
-        case .archiveNotFound(let url):
-            return "HAR archive not found at: \(url.path)"
-
-        case .archiveMissing(let path, let testName, let instructions):
-            return """
-
-                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                ⚠️  Replay Archive Missing
-                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-                Test: \(testName)
-                Expected archive: \(path.path)
-
-                \(instructions)
-
-                Note: Archives are NOT created automatically to prevent
-                accidental recording of incorrect responses.
-                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                """
         }
     }
 
@@ -124,10 +142,8 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
         switch self {
         case .notConfigured:
             return "Replay Not Configured"
-        case .noMatchingEntry:
-            return "No Matching Entry"
-        case .noMatchingStub:
-            return "No Matching Stub"
+        case .invalidRecordingMode:
+            return "Invalid Recording Mode"
         case .invalidRequest:
             return "Invalid Request"
         case .invalidResponse:
@@ -140,6 +156,10 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
             return "Archive Not Found"
         case .archiveMissing:
             return "Archive Missing"
+        case .noMatchingEntry:
+            return "No Matching Entry"
+        case .noMatchingStub:
+            return "No Matching Stub"
         }
     }
 
@@ -156,14 +176,15 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
     public var errorCode: Int {
         switch self {
         case .notConfigured: return 0
-        case .noMatchingEntry: return 1
-        case .noMatchingStub: return 8
+        case .invalidRecordingMode: return 1
         case .invalidRequest: return 2
         case .invalidResponse: return 3
         case .invalidURL: return 4
         case .invalidBase64: return 5
         case .archiveNotFound: return 6
         case .archiveMissing: return 7
+        case .noMatchingEntry: return 8
+        case .noMatchingStub: return 9
         }
     }
 

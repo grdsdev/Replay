@@ -11,25 +11,26 @@ public enum RecordingMode: String, Hashable, CaseIterable {
     /// Run tests against the live network, ignoring replay archives and without recording.
     case live
 
-    /// The current recording mode.
+    /// Gets the recording mode from environment variables.
     ///
-    /// - Returns: The inferred recording mode.
+    /// - Returns: The recording mode from `REPLAY_MODE` environment variable.
+    /// - Throws: `ReplayError.invalidRecordingMode` if `REPLAY_MODE` is set to an invalid value.
     ///
-    ///   This value is computed from environment variables and process arguments:
-    ///   - `.playback` (default) when `REPLAY_MODE=playback` or not set
-    ///   - `.record` when `REPLAY_MODE=record` is set,
-    ///     or when `--enable-replay-recording` is present
-    ///   - `.live` when `REPLAY_MODE=live` is set,
-    ///     or when `--enable-replay-live` is present
-    public static var current: RecordingMode {
-        if let modeString = ProcessInfo.processInfo.environment["REPLAY_MODE"]?.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        ).lowercased(),
-            let mode = RecordingMode(rawValue: modeString)
-        {
-            return mode
+    ///   Valid values for `REPLAY_MODE`: `playback`, `record`, `live`.
+    ///   If `REPLAY_MODE` is not set, returns `.playback`.
+    public static func fromEnvironment() throws -> RecordingMode {
+        guard
+            let modeString = ProcessInfo.processInfo.environment["REPLAY_MODE"]?.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).lowercased()
+        else {
+            return .playback
         }
 
-        return .playback
+        guard let mode = RecordingMode(rawValue: modeString) else {
+            throw ReplayError.invalidRecordingMode(modeString)
+        }
+
+        return mode
     }
 }

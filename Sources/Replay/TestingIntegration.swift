@@ -82,7 +82,7 @@ import Foundation
             let name = archiveName ?? generateArchiveName(for: test, testCase: testCase)
             let archiveURL = try await getArchiveURL(name: name, test: test)
 
-            let mode = RecordingMode.current
+            let mode = try RecordingMode.fromEnvironment()
             let archiveExists = FileManager.default.fileExists(atPath: archiveURL.path)
 
             let testName = test.displayName ?? test.name
@@ -146,7 +146,7 @@ import Foundation
             let name = archiveName ?? generateArchiveName(for: test, testCase: testCase)
             let archiveURL = try await getArchiveURL(name: name, test: test)
 
-            let mode = RecordingMode.current
+            let mode = try RecordingMode.fromEnvironment()
             let archiveExists = FileManager.default.fileExists(atPath: archiveURL.path)
 
             let testName = test.displayName ?? test.name
@@ -239,7 +239,7 @@ import Foundation
                             .appendingPathComponent("\(name).har")
 
                         // If recording, use this source-relative path
-                        if RecordingMode.current == .record {
+                        if (try? RecordingMode.fromEnvironment()) == .record {
                             try? FileManager.default.createDirectory(
                                 at: archiveURL.deletingLastPathComponent(),
                                 withIntermediateDirectories: true
@@ -268,7 +268,7 @@ import Foundation
 
             // 4. Fallback to CWD/directory (Old behavior, mostly for Linux or when sourceLocation is missing)
             let cwdURL = URL(fileURLWithPath: directory)
-            if RecordingMode.current == .record {
+            if (try? RecordingMode.fromEnvironment()) == .record {
                 try? FileManager.default.createDirectory(
                     at: cwdURL, withIntermediateDirectories: true)
             }

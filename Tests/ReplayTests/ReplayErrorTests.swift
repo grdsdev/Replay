@@ -18,6 +18,15 @@ struct ReplayErrorTests {
             #expect(error.description.contains("Playback.session()"))
         }
 
+        @Test("invalidRecordingMode error")
+        func invalidRecordingMode() {
+            let error = ReplayError.invalidRecordingMode("invalid-mode")
+
+            #expect(error.description.contains("Invalid recording mode"))
+            #expect(error.description.contains("invalid-mode"))
+            #expect(error.description.contains("playback, record, live"))
+        }
+
         @Test("noMatchingEntry error")
         func noMatchingEntry() {
             let error = ReplayError.noMatchingEntry(
@@ -126,9 +135,7 @@ struct ReplayErrorTests {
         func descriptionNonEmpty() {
             let errors: [ReplayError] = [
                 .notConfigured,
-                .noMatchingEntry(method: "POST", url: "https://example.com", archivePath: "/archive.har"),
-                .noMatchingStub(
-                    method: "GET", url: "https://example.com", availableStubs: "  • GET https://example.com"),
+                .invalidRecordingMode("invalid"),
                 .invalidRequest("test reason"),
                 .invalidResponse,
                 .invalidURL("bad-url"),
@@ -139,6 +146,9 @@ struct ReplayErrorTests {
                     testName: "test",
                     instructions: "instructions"
                 ),
+                .noMatchingEntry(method: "POST", url: "https://example.com", archivePath: "/archive.har"),
+                .noMatchingStub(
+                    method: "GET", url: "https://example.com", availableStubs: "  • GET https://example.com"),
             ]
 
             for error in errors {
@@ -154,12 +164,7 @@ struct ReplayErrorTests {
         @Test("errorDescription returns concise summary")
         func errorDescriptionConciseSummary() {
             #expect(ReplayError.notConfigured.errorDescription == "Replay Not Configured")
-            #expect(
-                ReplayError.noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har")
-                    .errorDescription == "No Matching Entry")
-            #expect(
-                ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "")
-                    .errorDescription == "No Matching Stub")
+            #expect(ReplayError.invalidRecordingMode("invalid").errorDescription == "Invalid Recording Mode")
             #expect(ReplayError.invalidRequest("reason").errorDescription == "Invalid Request")
             #expect(ReplayError.invalidResponse.errorDescription == "Invalid Response")
             #expect(ReplayError.invalidURL("url").errorDescription == "Invalid URL")
@@ -170,6 +175,12 @@ struct ReplayErrorTests {
                 ReplayError.archiveMissing(
                     path: URL(fileURLWithPath: "/file.har"), testName: "test", instructions: "instructions"
                 ).errorDescription == "Archive Missing")
+            #expect(
+                ReplayError.noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har")
+                    .errorDescription == "No Matching Entry")
+            #expect(
+                ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "")
+                    .errorDescription == "No Matching Stub")
         }
 
         @Test("errorDescription is non-nil")
@@ -220,9 +231,7 @@ struct ReplayErrorTests {
         func errorCodeUniqueness() {
             let errors: [ReplayError] = [
                 .notConfigured,
-                .noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har"),
-                .noMatchingStub(
-                    method: "GET", url: "https://example.com", availableStubs: "  • GET https://example.com"),
+                .invalidRecordingMode("invalid"),
                 .invalidRequest("reason"),
                 .invalidResponse,
                 .invalidURL("url"),
@@ -233,6 +242,9 @@ struct ReplayErrorTests {
                     testName: "test",
                     instructions: "instructions"
                 ),
+                .noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har"),
+                .noMatchingStub(
+                    method: "GET", url: "https://example.com", availableStubs: "  • GET https://example.com"),
             ]
 
             let codes = Set(errors.map { $0.errorCode })
@@ -267,7 +279,7 @@ struct ReplayErrorTests {
             let nsError = replayError as NSError
 
             #expect(nsError.domain == "Replay.ReplayError")
-            #expect(nsError.code == 1)
+            #expect(nsError.code == 8)
             #expect(nsError.localizedDescription == "No Matching Entry")
             #expect(nsError.localizedFailureReason == replayError.description)
             #expect(nsError.localizedFailureReason?.contains("GET") == true)
@@ -276,9 +288,7 @@ struct ReplayErrorTests {
         @Test("errorCode values match implementation")
         func errorCodeValues() {
             #expect(ReplayError.notConfigured.errorCode == 0)
-            #expect(
-                ReplayError.noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har")
-                    .errorCode == 1)
+            #expect(ReplayError.invalidRecordingMode("invalid").errorCode == 1)
             #expect(ReplayError.invalidRequest("reason").errorCode == 2)
             #expect(ReplayError.invalidResponse.errorCode == 3)
             #expect(ReplayError.invalidURL("url").errorCode == 4)
@@ -289,7 +299,10 @@ struct ReplayErrorTests {
                     path: URL(fileURLWithPath: "/file.har"), testName: "test", instructions: "instructions"
                 ).errorCode == 7)
             #expect(
-                ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "").errorCode == 8
+                ReplayError.noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har")
+                    .errorCode == 8)
+            #expect(
+                ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "").errorCode == 9
             )
         }
     }

@@ -4,7 +4,7 @@
 > This package is in active development, and may make breaking changes before an initial release.
 
 HTTP recording, playback, and stubbing for Swift,
-built around <abbr title="HTTP Archive">HAR</abbr> fixtures 
+built around <abbr title="HTTP Archive">HAR</abbr> fixtures
 and Swift Testing traits.
 
 ## Requirements
@@ -40,7 +40,7 @@ Then add `Replay` to your **test target** dependencies:
 1. Add the package: **File → Add Packages…**
 2. Add **Replay** to your **test target**.
 
-If you want to ship HAR files in your test bundle, 
+If you want to ship HAR files in your test bundle,
 ensure they're included as test resources (see the tutorial below).
 
 ## Quick start
@@ -157,9 +157,9 @@ Let's walk through a simple end-to-end setup.
 
 ### 0) Design your HTTP client to accept a session (optional but recommended)
 
-Replay _can_ intercept `URLSession.shared` globally, 
-but making it so that your API client accepts a `URLSession` parameter 
-makes it easy to opt into `.test` scope later 
+Replay _can_ intercept `URLSession.shared` globally,
+but making it so that your API client accepts a `URLSession` parameter
+makes it easy to opt into `.test` scope later
 (and it's generally good design).
 
 ```swift
@@ -173,7 +173,7 @@ struct User: Identifiable, Codable {
 
 actor ExampleAPIClient {
     static let shared = ExampleAPIClient()
-    
+
     let baseURL: URL
     let session: URLSession
 
@@ -345,7 +345,7 @@ swift test
 > HAR files may contain sensitive data (cookies, auth headers, tokens, PII).
 > Always review/redact before committing to source control.
 
-Replay can redact while recording using filters (recommended) 
+Replay can redact while recording using filters (recommended)
 or you can filter an existing HAR file using the plugin (see Tooling).
 
 ## Common patterns and recipes
@@ -364,17 +364,6 @@ In those cases, you can configure to match on just HTTP method and URL path (ign
 func fetchUser() async throws { /* ... */ }
 ```
 
-Matchers **compose with AND semantics**: Replay considers an entry a match only if **all**
-matchers in the array match the incoming request against the candidate request from the HAR.
-
-```swift
-// Equivalent: both mean "method AND path must match"
-@Test(.replay("fetchUser", matching: [.method, .path]))
-@Test(.replay("fetchUser", matching: [.path, .method]))
-```
-
-If you need OR / fuzzy behavior, use `.custom` (for example, “either of these headers”, or “path prefix”).
-
 Available matchers:
 - `.method` (case-insensitive)
 - `.host` (string equality on `URL.host`)
@@ -386,30 +375,58 @@ Available matchers:
 - `.body` (matches `URLRequest.httpBody` bytes; useful to disambiguate same endpoint)
 - `.custom((URLRequest, URLRequest) -> Bool)`
 
-Examples:
-
 ```swift
 // Strict default: method + full URL
 @Test(.replay("fetchUser", matching: [.method, .url]))
-```
 
-```swift
 // Ignore volatile query items but still disambiguate by Accept header.
 @Test(.replay("fetchUser", matching: [.method, .path, .headers(["Accept"])]))
-```
 
-```swift
 // Same endpoint but multiple payload variants (e.g. POST bodies).
 @Test(.replay("createPost", matching: [.method, .path, .body]))
 ```
 
-Canonicalization / normalization notes:
-- `.url` is intentionally strict: scheme/port/query ordering/fragment differences will not match.
-- Query comparisons are **order-insensitive** when using `.query`: `?a=1&b=2` matches `?b=2&a=1`.
-- Query comparisons are **order-sensitive** when using `.url` (because `URL.absoluteString` is order-sensitive).
-- Header matching uses `URLRequest.value(forHTTPHeaderField:)` semantics (case-insensitive names).
+Matchers compose with `AND` semantics.
+Replay considers an entry a match only if _all_
+matchers in the array match the incoming request against the candidate request from the HAR.
 
-### Use filters to remove sensitive and unnecessary
+```swift
+// Equivalent: both mean "method AND path must match"
+@Test(.replay("fetchUser", matching: [.method, .path]))
+@Test(.replay("fetchUser", matching: [.path, .method]))
+```
+
+Replay does very little normalization by default.
+If your API varies in any of the ways below, prefer composing other matchers
+(for example, `.method` + `.path` + `.query`).
+
+- **HTTP method case**:
+  `.method` is **case-insensitive** (e.g. `"get"` matches `"GET"`)
+- **Header field name case**:
+  `.headers([…])` uses `URLRequest.value(forHTTPHeaderField:)` semantics,
+  so header names are **case-insensitive** (e.g. `"content-type"` matches `"Content-Type"`)
+- **Scheme + host equivalence**:
+  `.url` is strict and does **not** treat scheme/host case differences as equivalent
+  (counterexample: `HTTP://API.COM/v1` ≠ `http://api.com/v1`).
+  If you want to ignore scheme or treat host case-insensitively, prefer `.host` + `.path` (+ `.query`)
+  or implement normalization with `.custom`.
+- **Default ports**:
+  `.url` does **not** strip default ports (e.g. `https://api.com:443/v1` ≠ `https://api.com/v1`)
+- **Dot segments**:
+  `.url` does **not** resolve dot segments (e.g. `https://api.com/a/./b` ≠ `https://api.com/a/b`)
+- **Query item ordering**:
+  - `.url` is **order-sensitive** (counterexample: `https://api.com/v1?b=2&a=1` ≠ `https://api.com/v1?a=1&b=2`)
+  - `.query` is **order-insensitive** (e.g. `?b=2&a=1` matches `?a=1&b=2`)
+- **Fragment**:
+  `.url` does **not** drop fragments (e.g. `https://api.com/v1#top` ≠ `https://api.com/v1`)
+- **Trailing slash**:
+  `.path` is strict string equality (e.g. `/api/` ≠ `/api`)
+
+> [!NOTE]
+> Need something not provided by the built-in matchers?
+> Use `.custom` to implement your own logic for which HAR entry should be selected for a given request.
+
+### Use filters to remove sensitive information and cruft
 
 Filters run during recording and are persisted into the HAR file.
 
@@ -452,10 +469,10 @@ func fetchGreeting() async throws {
 
 ### Use `.test` scope + `Replay.session` to run tests in parallel
 
-By default, `.replay` uses global `URLProtocol` registration and a shared store, 
+By default, `.replay` uses global `URLProtocol` registration and a shared store,
 which is why `.serialized` is recommended when multiple tests use Replay.
 
-If you want to isolate by test/task, 
+If you want to isolate by test/task,
 use `scope: .test` **and** make requests through a session created by Replay:
 
 ```swift
@@ -471,7 +488,7 @@ struct ParallelizableAPITests {
 
 ### Use multiple replays in a test
 
-Replay supports **multiple HAR archives** by keeping many files in your `Replays/` directory 
+Replay supports **multiple HAR archives** by keeping many files in your `Replays/` directory
 and selecting **one archive per test** by name.
 
 ```
@@ -498,7 +515,7 @@ struct ExampleAPITests {
 }
 ```
 
-Don't stack multiple `.replay(...)` traits on the same test. 
+Don't stack multiple `.replay(...)` traits on the same test.
 Treat Replay as **one active configuration per test scope**:
 
 ```swift
@@ -506,14 +523,14 @@ Treat Replay as **one active configuration per test scope**:
 func myTest() async throws { /* ... */ }
 ```
 
-If you need a single test to cover multiple calls, 
+If you need a single test to cover multiple calls,
 you usually have two practical options:
 
-- **Option A** (recommended): 
-  record those calls into **one HAR file** 
+- **Option A** (recommended):
+  record those calls into **one HAR file**
   (one archive can contain many request/response entries).
-- **Option B**: 
-  split the scenario into multiple tests, 
+- **Option B**:
+  split the scenario into multiple tests,
   each with its own `@Test(.replay("…"))`.
 
 ### Create HAR files from browser sessions

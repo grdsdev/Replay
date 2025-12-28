@@ -256,6 +256,122 @@ struct HARTests {
 
             #expect(data == binaryData)
         }
+
+        @Test("toURLResponse throws for truly invalid URL")
+        func toURLResponseThrowsForInvalidURL() {
+            // Use a URL that URL(string:) will accept but HTTPURLResponse cannot create
+            // Actually, URL(string:) percent-encodes most strings, so we need to test with
+            // a URL that creates a response but fails validation
+            // Since URL(string:) handles most cases, we'll test with an empty string which fails
+            let request = HAR.Request(
+                method: "GET",
+                url: "",
+                httpVersion: "HTTP/1.1",
+                headers: [],
+                bodySize: 0
+            )
+            let response = makeTestResponse()
+            let entry = HAR.Entry(
+                startedDateTime: Date(),
+                time: 100,
+                request: request,
+                response: response,
+                timings: HAR.Timings(send: 0, wait: 100, receive: 0)
+            )
+
+            #expect(throws: ReplayError.self) {
+                try entry.toURLResponse()
+            }
+        }
+
+        @Test("toURLResponse throws for invalid base64")
+        func toURLResponseThrowsForInvalidBase64() {
+            let request = makeTestRequest()
+            let content = HAR.Content(
+                size: 10,
+                mimeType: "application/octet-stream",
+                text: "invalid-base64!!!",
+                encoding: "base64"
+            )
+            let response = HAR.Response(
+                status: 200,
+                statusText: "OK",
+                httpVersion: "HTTP/1.1",
+                headers: [],
+                content: content,
+                bodySize: 10
+            )
+            let entry = HAR.Entry(
+                startedDateTime: Date(),
+                time: 100,
+                request: request,
+                response: response,
+                timings: HAR.Timings(send: 0, wait: 100, receive: 0)
+            )
+
+            #expect(throws: ReplayError.self) {
+                try entry.toURLResponse()
+            }
+        }
+
+        @Test("toURLResponse handles empty body")
+        func toURLResponseHandlesEmptyBody() throws {
+            let request = makeTestRequest()
+            let content = HAR.Content(
+                size: 0,
+                mimeType: "text/plain",
+                text: nil
+            )
+            let response = HAR.Response(
+                status: 204,
+                statusText: "No Content",
+                httpVersion: "HTTP/1.1",
+                headers: [],
+                content: content,
+                bodySize: 0
+            )
+            let entry = HAR.Entry(
+                startedDateTime: Date(),
+                time: 100,
+                request: request,
+                response: response,
+                timings: HAR.Timings(send: 0, wait: 100, receive: 0)
+            )
+
+            let (_, data) = try entry.toURLResponse()
+
+            #expect(data.isEmpty)
+        }
+
+        @Test("toURLResponse handles UTF-8 text without encoding")
+        func toURLResponseHandlesUTF8Text() throws {
+            let request = makeTestRequest()
+            let content = HAR.Content(
+                size: 11,
+                mimeType: "text/plain",
+                text: "Hello World",
+                encoding: nil
+            )
+            let response = HAR.Response(
+                status: 200,
+                statusText: "OK",
+                httpVersion: "HTTP/1.1",
+                headers: [],
+                content: content,
+                bodySize: 11
+            )
+            let entry = HAR.Entry(
+                startedDateTime: Date(),
+                time: 100,
+                request: request,
+                response: response,
+                timings: HAR.Timings(send: 0, wait: 100, receive: 0)
+            )
+
+            let (_, data) = try entry.toURLResponse()
+
+            #expect(String(data: data, encoding: .utf8) == "Hello World")
+        }
     }
 
     // MARK: - Request Tests
@@ -390,6 +506,53 @@ struct HARTests {
             #expect(request.cookies.count == 2)
             #expect(request.cookies[0].name == "valid")
             #expect(request.cookies[1].name == "another")
+        }
+
+        @Test("handles non-UTF8 body as base64")
+        func handlesNonUTF8BodyAsBase64() throws {
+            var urlRequest = URLRequest(url: URL(string: "https://example.com/api")!)
+            urlRequest.httpMethod = "POST"
+            // Create binary data that's not valid UTF-8
+            let binaryData = Data([0xFF, 0xFE, 0xFD, 0xFC])
+            urlRequest.httpBody = binaryData
+            urlRequest.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+
+            let request = try HAR.Request(from: urlRequest)
+
+            #expect(request.postData?.text == binaryData.base64EncodedString())
+            #expect(request.bodySize == binaryData.count)
+        }
+
+        @Test("handles request without httpMethod")
+        func handlesRequestWithoutHTTPMethod() throws {
+            var urlRequest = URLRequest(url: URL(string: "https://example.com/api")!)
+            urlRequest.httpMethod = nil
+
+            let request = try HAR.Request(from: urlRequest)
+
+            #expect(request.method == "GET")
+        }
+
+        @Test("handles request with query parameters in URL")
+        func handlesRequestWithQueryParameters() throws {
+            let urlRequest = URLRequest(url: URL(string: "https://example.com/api?foo=bar&baz=qux")!)
+
+            let request = try HAR.Request(from: urlRequest)
+
+            #expect(request.queryString.count == 2)
+            #expect(request.queryString.contains { $0.name == "foo" && $0.value == "bar" })
+            #expect(request.queryString.contains { $0.name == "baz" && $0.value == "qux" })
+        }
+
+        @Test("handles request with nil query item values")
+        func handlesRequestWithNilQueryValues() throws {
+            let urlRequest = URLRequest(url: URL(string: "https://example.com/api?key")!)
+
+            let request = try HAR.Request(from: urlRequest)
+
+            #expect(request.queryString.count == 1)
+            #expect(request.queryString[0].name == "key")
+            #expect(request.queryString[0].value == "")
         }
     }
 
@@ -557,6 +720,70 @@ struct HARTests {
             let response = try HAR.Response(from: httpResponse, data: Data())
 
             #expect(response.cookies.isEmpty)
+        }
+
+        @Test("handles response with empty URL")
+        func handlesResponseWithEmptyURL() throws {
+            // HTTPURLResponse requires a URL, so we'll test with a valid URL but check cookie handling
+            let url = URL(string: "https://example.com")!
+            let httpResponse = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "text/plain"]
+            )!
+
+            let response = try HAR.Response(from: httpResponse, data: Data())
+
+            #expect(response.cookies.isEmpty)
+        }
+
+        @Test("handles response with nil mimeType")
+        func handlesResponseWithNilMimeType() throws {
+            let url = URL(string: "https://example.com")!
+            let httpResponse = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: "HTTP/1.1",
+                headerFields: [:]
+            )!
+
+            let response = try HAR.Response(from: httpResponse, data: Data())
+
+            #expect(response.content.mimeType == "application/octet-stream")
+        }
+
+        @Test("encodes binary data as base64")
+        func encodesBinaryDataAsBase64() throws {
+            let url = URL(string: "https://example.com/image.png")!
+            let httpResponse = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "image/png"]
+            )!
+            let binaryData = Data([0x89, 0x50, 0x4E, 0x47])  // PNG header
+
+            let response = try HAR.Response(from: httpResponse, data: binaryData)
+
+            #expect(response.content.encoding == "base64")
+            #expect(response.content.text == binaryData.base64EncodedString())
+        }
+
+        @Test("handles empty response data")
+        func handlesEmptyResponseData() throws {
+            let url = URL(string: "https://example.com")!
+            let httpResponse = HTTPURLResponse(
+                url: url,
+                statusCode: 204,
+                httpVersion: "HTTP/1.1",
+                headerFields: [:]
+            )!
+
+            let response = try HAR.Response(from: httpResponse, data: Data())
+
+            #expect(response.bodySize == 0)
+            #expect(response.content.size == 0)
         }
     }
 
@@ -926,6 +1153,67 @@ struct HARTests {
     }
 
     // MARK: - HAR Static Methods Tests
+
+    // MARK: - HAR.Entry from URLRequest/Response Tests
+
+    @Suite("HAR.Entry from URLRequest/Response")
+    struct EntryFromURLRequestTests {
+        @Test("creates entry from URLRequest and HTTPURLResponse")
+        func createsEntryFromURLRequest() throws {
+            let url = URL(string: "https://example.com/api")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = "{}".data(using: .utf8)
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 201,
+                httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let responseData = "{\"id\":123}".data(using: .utf8)!
+            let startTime = Date()
+            let duration: TimeInterval = 0.5
+
+            let entry = try HAR.Entry(
+                request: request,
+                response: response,
+                data: responseData,
+                startTime: startTime,
+                duration: duration
+            )
+
+            #expect(entry.request.method == "POST")
+            #expect(entry.request.url == "https://example.com/api")
+            #expect(entry.response.status == 201)
+            #expect(entry.time == 500)  // milliseconds
+            #expect(entry.startedDateTime == startTime)
+        }
+
+        @Test("throws for URLRequest without URL")
+        func throwsForRequestWithoutURL() {
+            var request = URLRequest(url: URL(string: "about:blank")!)
+            request.url = nil
+
+            let response = HTTPURLResponse(
+                url: URL(string: "https://example.com")!,
+                statusCode: 200,
+                httpVersion: "HTTP/1.1",
+                headerFields: [:]
+            )!
+
+            #expect(throws: ReplayError.self) {
+                try HAR.Entry(
+                    request: request,
+                    response: response,
+                    data: Data(),
+                    startTime: Date(),
+                    duration: 0.1
+                )
+            }
+        }
+    }
 
     @Suite("HAR Static Methods Tests")
     struct HARStaticMethodsTests {

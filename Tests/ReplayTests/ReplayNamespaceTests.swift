@@ -108,4 +108,36 @@ struct ReplayNamespaceTests {
             #expect(hasPlayback)
         }
     }
+
+    @Suite("Replay.session Tests with ReplayContext")
+    struct SessionWithContextTests {
+        @Test("session sets header when ReplayContext has playbackStore")
+        func sessionSetsHeaderWithContext() async throws {
+            // Create a test store
+            let testStore = PlaybackStore()
+            let testConfig = PlaybackConfiguration(
+                source: .stubs([Stub.get("https://example.com", 200, [:], { "OK" })])
+            )
+            try await testStore.configure(testConfig)
+
+            // Set the context
+            ReplayContext.$playbackStore.withValue(testStore) {
+                let session = Replay.session
+                let headers = session.configuration.httpAdditionalHeaders as? [String: String]
+                let headerValue = headers?[ReplayProtocolContext.headerName]
+
+                #expect(headerValue != nil)
+                #expect(headerValue == PlaybackStoreRegistry.key(for: testStore))
+            }
+        }
+
+        @Test("session does not set header when ReplayContext is nil")
+        func sessionDoesNotSetHeaderWithoutContext() {
+            let session = Replay.session
+            let headers = session.configuration.httpAdditionalHeaders as? [String: String]
+            let headerValue = headers?[ReplayProtocolContext.headerName]
+
+            #expect(headerValue == nil)
+        }
+    }
 }

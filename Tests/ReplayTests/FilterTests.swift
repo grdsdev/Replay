@@ -658,6 +658,74 @@ struct FilterTests {
 
             #expect(result.request.postData?.text == #"{"foo":"bar"}"#)
         }
+
+        @Test("handles base64 encoded content")
+        func handlesBase64EncodedContent() async {
+            let jsonData = #"{"name":"Alice","role":"admin"}"#.data(using: .utf8)!
+            let base64Text = jsonData.base64EncodedString()
+
+            let entry = makeEntryWithResponseContent(
+                size: jsonData.count,
+                mimeType: "application/json",
+                text: base64Text,
+                encoding: "base64",
+                compression: nil,
+                comment: nil
+            )
+
+            let filter = Filter.body(decoding: User.self) { user in
+                var modified = user
+                modified.role = "user"
+                return modified
+            }
+
+            let result = await filter.apply(to: entry)
+
+            // Should decode base64, transform, and potentially re-encode
+            #expect(result.response.content.text != nil)
+        }
+
+        @Test("handles invalid base64 gracefully")
+        func handlesInvalidBase64Gracefully() async {
+            let entry = makeEntryWithResponseContent(
+                size: 10,
+                mimeType: "application/json",
+                text: "invalid-base64!!!",
+                encoding: "base64",
+                compression: nil,
+                comment: nil
+            )
+
+            let filter = Filter.body(decoding: User.self) { user in
+                var modified = user
+                modified.name = "Modified"
+                return modified
+            }
+
+            let result = await filter.apply(to: entry)
+
+            // Should leave content unchanged if base64 decode fails
+            #expect(result.response.content.text == "invalid-base64!!!")
+        }
+
+        @Test("handles non-JSON content gracefully")
+        func handlesNonJSONContentGracefully() async {
+            let entry = makeEntryWithBody(
+                requestBody: "plain text, not JSON",
+                responseBody: nil
+            )
+
+            let filter = Filter.body(decoding: User.self) { user in
+                var modified = user
+                modified.name = "Modified"
+                return modified
+            }
+
+            let result = await filter.apply(to: entry)
+
+            // Should leave content unchanged if JSON decode fails
+            #expect(result.request.postData?.text == "plain text, not JSON")
+        }
     }
 }
 

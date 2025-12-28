@@ -272,6 +272,26 @@ struct ReplayErrorTests {
             #expect(nsError.localizedFailureReason == replayError.description)
             #expect(nsError.localizedFailureReason?.contains("GET") == true)
         }
+
+        @Test("errorCode values match implementation")
+        func errorCodeValues() {
+            #expect(ReplayError.notConfigured.errorCode == 0)
+            #expect(
+                ReplayError.noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har")
+                    .errorCode == 1)
+            #expect(ReplayError.invalidRequest("reason").errorCode == 2)
+            #expect(ReplayError.invalidResponse.errorCode == 3)
+            #expect(ReplayError.invalidURL("url").errorCode == 4)
+            #expect(ReplayError.invalidBase64("data").errorCode == 5)
+            #expect(ReplayError.archiveNotFound(URL(fileURLWithPath: "/file.har")).errorCode == 6)
+            #expect(
+                ReplayError.archiveMissing(
+                    path: URL(fileURLWithPath: "/file.har"), testName: "test", instructions: "instructions"
+                ).errorCode == 7)
+            #expect(
+                ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "").errorCode == 8
+            )
+        }
     }
 
     // MARK: - Sendable

@@ -445,12 +445,35 @@ struct CaptureTests {
             #expect(CaptureURLProtocol.canInit(with: request))
         }
 
+        @Test("canInit returns false for already handled requests")
+        func canInitReturnsFalseForHandledRequests() {
+            let request = URLRequest(url: URL(string: "https://example.com")!)
+            let mutableRequest = (request as NSURLRequest).mutableCopy() as! NSMutableURLRequest
+            URLProtocol.setProperty(true, forKey: "ReplayCaptureHandled", in: mutableRequest)
+
+            #expect(!CaptureURLProtocol.canInit(with: mutableRequest as URLRequest))
+        }
+
         @Test("canonicalRequest returns same request")
         func canonicalRequestReturnsSame() {
             let request = URLRequest(url: URL(string: "https://example.com/path")!)
             let canonical = CaptureURLProtocol.canonicalRequest(for: request)
 
             #expect(canonical.url == request.url)
+        }
+
+        @Test("canonicalRequest preserves all request properties")
+        func canonicalRequestPreservesProperties() {
+            var request = URLRequest(url: URL(string: "https://example.com/path")!)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = "{}".data(using: .utf8)
+
+            let canonical = CaptureURLProtocol.canonicalRequest(for: request)
+
+            #expect(canonical.httpMethod == "POST")
+            #expect(canonical.value(forHTTPHeaderField: "Content-Type") == "application/json")
+            #expect(canonical.httpBody == request.httpBody)
         }
     }
 }

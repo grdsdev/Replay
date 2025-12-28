@@ -126,6 +126,39 @@ struct ExampleAPITests {
         #expect(user.name == "Alice")
     }
 
+    /// Test fetching a user using in-memory stubs.
+    ///
+    /// Uses: In-memory stubs instead of a HAR file
+    @Test(
+        .replay(
+            stubs: [
+                .get(
+                    "https://api.example.com/users/42",
+                    200,
+                    ["Content-Type": "application/json"],
+                    {
+                        """
+                        {
+                            "id": 42,
+                            "name": "Alice",
+                            "email": "alice@example.com"
+                        }
+                        """
+                    }
+                )
+            ],
+            matching: [.method, .path]
+        )
+    )
+    func fetchUserFromStubs() async throws {
+        let client = ExampleAPIClient.shared
+        let user = try await client.fetchUser(id: 42)
+
+        #expect(user.id == 42)
+        #expect(user.name == "Alice")
+        #expect(user.email == "alice@example.com")
+    }
+
     @Test("Missing archive provides helpful error message")
     func missingArchiveError() async throws {
         // Force playback mode so this test is stable even when the overall test run

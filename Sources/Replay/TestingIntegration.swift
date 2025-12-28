@@ -104,13 +104,12 @@ import Foundation
 
             // Register URLProtocol globally for zero-config interception.
             URLProtocol.registerClass(PlaybackURLProtocol.self)
-
-            // Configure playback store.
-            try await PlaybackStore.shared.configure(config)
-
             defer {
                 URLProtocol.unregisterClass(PlaybackURLProtocol.self)
             }
+
+            // Configure playback store.
+            try await PlaybackStore.shared.configure(config)
 
             try await function()
 

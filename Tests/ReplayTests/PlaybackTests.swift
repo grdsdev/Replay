@@ -3,7 +3,7 @@ import Testing
 
 @testable import Replay
 
-@Suite("Playback Tests")
+@Suite("Playback Tests", .serialized)
 struct PlaybackTests {
 
     // MARK: - ReplayScope Tests
@@ -441,8 +441,6 @@ struct PlaybackTests {
             )
 
             #expect(session.configuration.protocolClasses?.contains { $0 == PlaybackURLProtocol.self } == true)
-
-            await Playback.clear()
         }
 
         @Test("session configures protocol classes")
@@ -454,8 +452,6 @@ struct PlaybackTests {
             )
 
             #expect(session.configuration.protocolClasses?.first == PlaybackURLProtocol.self)
-
-            await Playback.clear()
         }
 
         @Test("session accepts custom base configuration")
@@ -470,8 +466,6 @@ struct PlaybackTests {
             )
 
             #expect(session.configuration.timeoutIntervalForRequest == 999)
-
-            await Playback.clear()
         }
 
         @Test("clear resets store state")

@@ -26,7 +26,7 @@ final class LockIsolated<Value>: @unchecked Sendable {
     }
 }
 
-@Suite("Capture Tests")
+@Suite("Capture Tests", .serialized)
 struct CaptureTests {
 
     // MARK: - CaptureConfiguration Tests

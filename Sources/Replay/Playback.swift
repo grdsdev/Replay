@@ -325,7 +325,15 @@ public enum Playback {
         protocols.insert(PlaybackURLProtocol.self, at: 0)
         config.protocolClasses = protocols
 
-        try await PlaybackStore.shared.configure(configuration)
+        // Prefer isolation: configure a dedicated store and route requests to it via header.
+        // This avoids interference when multiple playback sessions exist concurrently.
+        let store = PlaybackStore()
+        try await store.configure(configuration)
+        let key = PlaybackStoreRegistry.shared.register(store)
+
+        var headers = config.httpAdditionalHeaders ?? [:]
+        headers[ReplayProtocolContext.headerName] = key
+        config.httpAdditionalHeaders = headers
 
         return URLSession(configuration: config)
     }

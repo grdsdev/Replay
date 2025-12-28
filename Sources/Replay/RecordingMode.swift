@@ -13,9 +13,14 @@ public enum RecordingMode {
 
     /// The current recording mode.
     ///
-    /// - Returns: `.live` if `REPLAY_MODE=live` / `REPLAY_LIVE=1` is set (or `--enable-replay-live` is present);
-    ///            `.record` if `REPLAY_MODE=record` / `REPLAY_RECORDING=1` is set (or `--enable-replay-recording` is present);
-    ///            otherwise returns `.playback`.
+    /// - Returns: The inferred recording mode.
+    ///
+    ///   This value is computed from environment variables and process arguments:
+    ///   - `.live` when `REPLAY_MODE=live` or `REPLAY_LIVE=1` is set,
+    ///     or when `--enable-replay-live` is present.
+    ///   - `.record` when `REPLAY_MODE=record` or `REPLAY_RECORDING=1` is set,
+    ///     or when `--enable-replay-recording` is present.
+    ///   - `.playback` otherwise.
     public static var current: RecordingMode {
         if let mode = env("REPLAY_MODE")?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
             switch mode {

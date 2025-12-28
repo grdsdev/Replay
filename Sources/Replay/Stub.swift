@@ -3,6 +3,10 @@ import Foundation
 /// A lightweight HTTP stub used for in-memory playback without a HAR file.
 public struct Stub: Sendable {
 
+    /// A source location describing where a stub was constructed.
+    ///
+    /// Replay uses this information to improve diagnostics
+    /// when a request does not match any available stubs.
     public struct SourceLocation: Sendable, Hashable, CustomStringConvertible {
         public let file: String
         public let line: Int
@@ -192,6 +196,15 @@ public struct Stub: Sendable {
 extension Stub {
 
     /// Create a GET stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    ///   - body: A closure that produces the response body as UTF-8 text.
+    /// - Returns: A stub that matches `GET url`.
     public static func get(
         file: String = #file,
         line: Int = #line,
@@ -212,6 +225,15 @@ extension Stub {
     }
 
     /// Create a POST stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    ///   - body: A closure that produces the response body as UTF-8 text.
+    /// - Returns: A stub that matches `POST url`.
     public static func post(
         file: String = #file,
         line: Int = #line,
@@ -233,6 +255,15 @@ extension Stub {
     }
 
     /// Create a PUT stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    ///   - body: A closure that produces the response body as UTF-8 text.
+    /// - Returns: A stub that matches `PUT url`.
     public static func put(
         file: String = #file,
         line: Int = #line,
@@ -254,6 +285,15 @@ extension Stub {
     }
 
     /// Create a DELETE stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    ///   - body: A closure that produces the response body as UTF-8 text.
+    /// - Returns: A stub that matches `DELETE url`.
     public static func delete(
         file: String = #file,
         line: Int = #line,
@@ -274,6 +314,15 @@ extension Stub {
     }
 
     /// Create a PATCH stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    ///   - body: A closure that produces the response body as UTF-8 text.
+    /// - Returns: A stub that matches `PATCH url`.
     public static func patch(
         file: String = #file,
         line: Int = #line,
@@ -294,6 +343,14 @@ extension Stub {
     }
 
     /// Create a HEAD stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    /// - Returns: A stub that matches `HEAD url`.
     public static func head(
         file: String = #file,
         line: Int = #line,
@@ -313,6 +370,14 @@ extension Stub {
     }
 
     /// Create a OPTIONS stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    /// - Returns: A stub that matches `OPTIONS url`.
     public static func options(
         file: String = #file,
         line: Int = #line,
@@ -332,6 +397,14 @@ extension Stub {
     }
 
     /// Create a TRACE stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    /// - Returns: A stub that matches `TRACE url`.
     public static func trace(
         file: String = #file,
         line: Int = #line,
@@ -351,6 +424,14 @@ extension Stub {
     }
 
     /// Create a CONNECT stub.
+    ///
+    /// - Parameters:
+    ///   - file: The source file where the stub is defined.
+    ///   - line: The source line where the stub is defined.
+    ///   - url: The request URL string.
+    ///   - status: The HTTP status code to return.
+    ///   - headers: The HTTP headers to return.
+    /// - Returns: A stub that matches `CONNECT url`.
     public static func connect(
         file: String = #file,
         line: Int = #line,

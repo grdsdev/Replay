@@ -178,7 +178,7 @@ public enum HAR {
         /// Total elapsed time of the request in milliseconds.
         ///
         /// This is the sum of all timings available in the timings object
-        /// (i.e. not including -1 values).
+        /// (excluding -1 values).
         public var time: Int
 
         /// Detailed info about the request.
@@ -198,10 +198,12 @@ public enum HAR {
 
         /// Unique ID of the parent TCP/IP connection.
         ///
-        /// Can be the client or server port number. Note that a port number doesn't have to be
+        /// Can be the client or server port number.
+        /// Note that a port number doesn't have to be
         /// a unique identifier in cases where the port is shared for more connections.
         /// If the port isn't available for the application, any other unique connection ID
-        /// can be used instead (e.g. connection index).
+        /// can be used instead
+        /// (for example, a connection index).
         public var connection: String?
 
         /// A comment provided by the user or the application.
@@ -322,7 +324,8 @@ public enum HAR {
         ///
         /// Set to -1 if the info is not available.
         /// The size of received response-headers is computed only from headers
-        /// that are really received from the server. Additional headers appended
+        /// that are really received from the server.
+        /// Additional headers appended
         /// by the browser are not included in this number.
         public var headersSize: Int
 
@@ -380,21 +383,26 @@ public enum HAR {
 
         /// Response body sent from the server or loaded from the browser cache.
         ///
-        /// This field is populated with textual content only. The text field is either
-        /// HTTP decoded text or an encoded (e.g. "base64") representation of the response body.
+        /// This field is populated with textual content only.
+        /// The text field is either
+        /// HTTP decoded text
+        /// or an encoded representation of the response body
+        /// (for example, \"base64\").
         /// Leave out this field if the information is not available.
         ///
         /// Before setting the text field, the HTTP response is decoded (decompressed & unchunked),
         /// then trans-coded from its original character set into UTF-8.
         public var text: String?
 
-        /// Encoding used for the response text field (e.g. "base64").
+        /// Encoding used for the response text field
+        /// (for example, \"base64\").
         ///
         /// Leave out this field if the text field is HTTP decoded
         /// (decompressed & unchunked), then trans-coded from its original
         /// character set into UTF-8.
         ///
-        /// Useful for including binary responses (e.g. images) into the HAR file.
+        /// Useful for including binary responses into the HAR file
+        /// (for example, images).
         public var encoding: String?
 
         /// A comment provided by the user or the application.
@@ -575,7 +583,8 @@ public enum HAR {
 
     /// Detailed timing info about request/response round trip.
     ///
-    /// All times are specified in milliseconds. Use -1 for timing phases not applicable
+    /// All times are specified in milliseconds.
+    /// Use -1 for timing phases not applicable
     /// to the current request.
     public struct Timings: Hashable, Codable, Sendable {
         /// Time spent in a queue waiting for a network connection.
@@ -584,7 +593,8 @@ public enum HAR {
         /// Optional.
         public var blocked: Int?
 
-        /// DNS resolution time. The time required to resolve a host name.
+        /// DNS resolution time.
+        /// The time required to resolve a host name.
         ///
         /// Use -1 if the timing does not apply to the current request.
         public var dns: Int?
@@ -762,6 +772,17 @@ extension HAR.Entry {
 }
 
 extension HAR.Request {
+    /// Creates a HAR request from a `URLRequest`.
+    ///
+    /// This initializer converts the HTTP method,
+    /// absolute URL string,
+    /// headers,
+    /// cookies,
+    /// query items,
+    /// and (when present) the HTTP body.
+    ///
+    /// - Parameter urlRequest: The request to convert.
+    /// - Throws: `ReplayError.invalidRequest` if the request is missing a URL.
     public init(from urlRequest: URLRequest) throws {
         guard let url = urlRequest.url else {
             throw ReplayError.invalidRequest("Missing URL")
@@ -820,6 +841,18 @@ extension HAR.Request {
 }
 
 extension HAR.Response {
+    /// Creates a HAR response from an `HTTPURLResponse` and body data.
+    ///
+    /// This initializer captures status information,
+    /// headers,
+    /// cookies,
+    /// and a textual representation of the body.
+    /// If the body is not valid UTF-8,
+    /// the body is stored as base64 with `content.encoding = \"base64\"`.
+    ///
+    /// - Parameters:
+    ///   - httpResponse: The response to convert.
+    ///   - data: The response body data.
     public init(from httpResponse: HTTPURLResponse, data: Data) throws {
         self.status = httpResponse.statusCode
         self.statusText = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)

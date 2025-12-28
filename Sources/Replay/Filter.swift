@@ -20,6 +20,10 @@ public enum Filter: Sendable {
     /// Applies an arbitrary async transformation to an entry.
     case custom(@Sendable (HAR.Entry) async -> HAR.Entry)
 
+    /// Applies the filter to a HAR entry.
+    ///
+    /// - Parameter entry: The entry to transform.
+    /// - Returns: The transformed entry.
     public func apply(to entry: HAR.Entry) async -> HAR.Entry {
         switch self {
         case .headers(let names, let replacement):
@@ -101,10 +105,24 @@ public enum Filter: Sendable {
 // MARK: - Convenience Extensions
 
 extension Filter {
+    /// Creates a filter that redacts the specified HTTP headers.
+    ///
+    /// Header name matching is case-insensitive.
+    ///
+    /// - Parameters:
+    ///   - names: Header names to redact.
+    ///   - replacement: The replacement value to use.
     public static func headers(_ names: String..., replacement: String = "[FILTERED]") -> Self {
         .headers(removing: names, replacement: replacement)
     }
 
+    /// Creates a filter that redacts the specified HTTP headers.
+    ///
+    /// Header name matching is case-insensitive.
+    ///
+    /// - Parameters:
+    ///   - headers: Header names to redact.
+    ///   - replacement: The replacement value to use.
     public static func headers(removing headers: [String], replacement: String = "[FILTERED]")
         -> Self
     {
@@ -135,10 +153,26 @@ extension Filter {
         .headers(keeping: headers)
     }
 
+    /// Creates a filter that redacts the specified URL query parameters.
+    ///
+    /// Query parameter name matching is case-sensitive
+    /// and uses exact string equality.
+    ///
+    /// - Parameters:
+    ///   - names: Parameter names to redact.
+    ///   - replacement: The replacement value to use.
     public static func queryParameters(_ names: String..., replacement: String = "FILTERED") -> Self {
         .queryParameters(removing: names, replacement: replacement)
     }
 
+    /// Creates a filter that redacts the specified URL query parameters.
+    ///
+    /// Query parameter name matching is case-sensitive
+    /// and uses exact string equality.
+    ///
+    /// - Parameters:
+    ///   - parameters: Parameter names to redact.
+    ///   - replacement: The replacement value to use.
     public static func queryParameters(
         removing parameters: [String],
         replacement: String = "FILTERED"
@@ -167,12 +201,30 @@ extension Filter {
         .queryParameters(keeping: parameters)
     }
 
+    /// Creates a filter that replaces occurrences of a pattern in request and response bodies.
+    ///
+    /// This filter performs a simple string replacement.
+    /// It is best suited to text formats such as JSON or XML.
+    ///
+    /// - Parameters:
+    ///   - pattern: The string to replace.
+    ///   - replacement: The replacement string to use.
     public static func body(replacing pattern: String, with replacement: String = "[FILTERED]")
         -> Self
     {
         .body(pattern: pattern, replacement: replacement)
     }
 
+    /// Creates a filter that decodes JSON bodies,
+    /// transforms the decoded value,
+    /// and writes the transformed value back as JSON.
+    ///
+    /// This filter operates on request bodies (`postData.text`)
+    /// and response bodies (`content.text`) when present.
+    ///
+    /// - Parameters:
+    ///   - type: The `Codable` type to decode from JSON.
+    ///   - transform: A transformation applied to decoded values.
     public static func body<T: Codable>(
         decoding type: T.Type,
         transform: @escaping @Sendable (T) -> T

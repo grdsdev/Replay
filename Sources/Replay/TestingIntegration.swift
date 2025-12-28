@@ -21,6 +21,24 @@ import Foundation
         private let rootURL: URL?
         private let scope: ReplayScope
 
+        /// Creates a Replay trait for a test or suite.
+        ///
+        /// By default,
+        /// the archive name is derived from the test name,
+        /// and Replay runs in playback-only mode
+        /// (unless recording or live mode is explicitly enabled).
+        ///
+        /// - Parameters:
+        ///   - name: The HAR archive name (without extension).
+        ///     When `nil`,
+        ///     Replay derives a name from the test.
+        ///   - matchers: Matchers used to match incoming requests to recorded entries.
+        ///   - filters: Filters applied to entries when recording.
+        ///   - directory: The directory used to locate archives
+        ///     (relative to the test source file when available).
+        ///   - rootURL: An optional override for the archive root directory.
+        ///   - stubs: In-memory stubs to use instead of a HAR file.
+        ///   - scope: The replay scope.
         public init(
             _ name: String? = nil,
             matchers: [Matcher] = .default,
@@ -262,10 +280,18 @@ import Foundation
         /// Use Replay with auto-generated name from test.
         public static var replay: Self { Self() }
 
-        /// Use Replay with specific archive name.
+        /// Uses Replay with a specific archive name.
+        ///
+        /// - Parameter name: The HAR archive name (without extension).
         public static func replay(_ name: String) -> Self { Self(name) }
 
-        /// Use Replay with custom matching configuration.
+        /// Uses Replay with a custom matching configuration.
+        ///
+        /// - Parameters:
+        ///   - name: The HAR archive name (without extension).
+        ///     When `nil`,
+        ///     Replay derives a name from the test.
+        ///   - matchers: Matchers used to match incoming requests to recorded entries.
         public static func replay(
             _ name: String? = nil,
             matching matchers: [Matcher]
@@ -273,7 +299,17 @@ import Foundation
             return Self(name, matchers: matchers)
         }
 
-        /// Use Replay with custom matching configuration and filters.
+        /// Uses Replay with a custom matching configuration and filters.
+        ///
+        /// - Parameters:
+        ///   - name: The HAR archive name (without extension).
+        ///     When `nil`,
+        ///     Replay derives a name from the test.
+        ///   - matchers: Matchers used to match incoming requests to recorded entries.
+        ///   - filters: Filters applied to entries when recording.
+        ///   - directory: The directory used to locate archives.
+        ///   - rootURL: An optional override for the archive root directory.
+        ///   - scope: The replay scope.
         public static func replay(
             _ name: String? = nil,
             matching matchers: [Matcher],
@@ -292,7 +328,15 @@ import Foundation
             )
         }
 
-        /// Use Replay with in-memory stubs (no HAR file).
+        /// Uses Replay with in-memory stubs (no HAR file).
+        ///
+        /// - Parameters:
+        ///   - stubs: Stubs used for playback.
+        ///   - matchers: Matchers used to match incoming requests to recorded entries.
+        ///   - filters: Filters applied to entries when recording.
+        ///   - directory: The directory used to locate archives.
+        ///   - rootURL: An optional override for the archive root directory.
+        ///   - scope: The replay scope.
         public static func replay(
             stubs: [Stub],
             matching matchers: [Matcher] = .default,
@@ -401,14 +445,26 @@ import Foundation
     public struct PlaybackIsolationTrait: TestTrait, SuiteTrait, TestScoping {
         private let replaysRootURL: URL?
 
+        /// Creates an isolation trait without changing the archive root.
+        ///
+        /// Use this trait to serialize tests that touch Replay playback,
+        /// even when you are not overriding archive resolution.
         public init() {
             self.replaysRootURL = nil
         }
 
+        /// Creates an isolation trait that overrides the replay archive root.
+        ///
+        /// - Parameter replaysRootURL: The root URL containing replay archives.
         public init(replaysRootURL: URL?) {
             self.replaysRootURL = replaysRootURL
         }
 
+        /// Creates an isolation trait that resolves archives from a bundle resource directory.
+        ///
+        /// - Parameters:
+        ///   - bundle: The bundle containing replay archives.
+        ///   - subdirectory: The subdirectory within the bundle's resource directory.
         public init(replaysFrom bundle: Bundle, subdirectory: String = "Replays") {
             self.replaysRootURL = bundle.resourceURL?.appendingPathComponent(subdirectory)
         }
@@ -438,8 +494,15 @@ import Foundation
     }
 
     extension Trait where Self == PlaybackIsolationTrait {
+        /// Serializes tests using Replay playback.
         public static var playbackIsolated: Self { Self() }
 
+        /// Serializes tests using Replay playback,
+        /// resolving archives from a bundle resource directory.
+        ///
+        /// - Parameters:
+        ///   - bundle: The bundle containing replay archives.
+        ///   - subdirectory: The subdirectory within the bundle's resource directory.
         public static func playbackIsolated(
             replaysFrom bundle: Bundle,
             subdirectory: String = "Replays"
@@ -447,6 +510,10 @@ import Foundation
             Self(replaysFrom: bundle, subdirectory: subdirectory)
         }
 
+        /// Serializes tests using Replay playback,
+        /// overriding the archive root URL.
+        ///
+        /// - Parameter replaysRootURL: The root URL containing replay archives.
         public static func playbackIsolated(replaysRootURL: URL?) -> Self {
             Self(replaysRootURL: replaysRootURL)
         }

@@ -2,7 +2,8 @@ import Foundation
 
 /// Strategy for matching incoming requests to recorded HAR entries.
 public enum Matcher: Sendable {
-    /// Matches HTTP method (e.g. `GET`, `POST`).
+    /// Matches HTTP method
+    /// (for example, `GET` or `POST`).
     case method
 
     /// Matches the full absolute URL string (`URL.absoluteString`), including scheme, port, query, and fragment.
@@ -15,15 +16,18 @@ public enum Matcher: Sendable {
     ///   instead of matching the entire URL string.
     case url
 
-    /// Matches URL host (e.g. `api.example.com`).
+    /// Matches URL host
+    /// (for example, `api.example.com`).
     case host
 
-    /// Matches URL path (e.g. `/v1/users/42`).
+    /// Matches URL path
+    /// (for example, `/v1/users/42`).
     case path
 
     /// Matches URL query items (`URLComponents.queryItems`).
     ///
-    /// - Important: This matcher is **not order-sensitive**. `?a=1&b=2` matches `?b=2&a=1`.
+    /// - Important: This matcher is **not order-sensitive**.
+    ///   `?a=1&b=2` matches `?b=2&a=1`.
     case query
 
     /// Matches URL fragment (`#fragment`).

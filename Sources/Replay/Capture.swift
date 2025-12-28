@@ -12,17 +12,48 @@ import Foundation
 
 // MARK: - Capture Configuration
 
+/// Configuration for capturing HTTP traffic into HAR entries.
+///
+/// Use this type with `Capture.session(configuration:baseConfiguration:)`
+/// to define where captured entries are written,
+/// and how entries are filtered or matched.
 public struct CaptureConfiguration: Sendable {
+    /// The destination for captured entries.
     public let destination: Destination
+
+    /// Filters applied to each captured entry,
+    /// in the order provided.
     public let filters: [Filter]
+
+    /// Matchers used to decide whether a request is captured.
+    ///
+    /// When `nil`,
+    /// all requests are eligible for capture.
     public let matchers: [Matcher]?  // Optional: only capture matching requests
 
+    /// A destination for captured HAR entries.
     public enum Destination: Sendable {
+        /// Writes a HAR log to the specified file URL.
         case file(URL)
+
+        /// Calls the handler for each captured entry.
+        ///
+        /// Use this destination to stream entries to custom storage,
+        /// or to integrate with your own logging pipeline.
         case handler(@Sendable (HAR.Entry) async -> Void)
+
+        /// Stores captured entries in memory.
+        ///
+        /// Access entries via `Capture.entries`.
         case memory  // Store in memory for inspection
     }
 
+    /// Creates a capture configuration.
+    ///
+    /// - Parameters:
+    ///   - destination: Where captured entries are written.
+    ///   - filters: Filters applied to each entry before it is stored.
+    ///   - matchers: Matchers used to decide which requests are captured.
     public init(
         destination: Destination,
         filters: [Filter] = [],
@@ -36,6 +67,10 @@ public struct CaptureConfiguration: Sendable {
 
 // MARK: - Capture URLProtocol
 
+/// A `URLProtocol` implementation that records HTTP traffic as HAR entries.
+///
+/// `CaptureURLProtocol` forwards responses to the requesting client,
+/// and records the request/response pair asynchronously.
 public final class CaptureURLProtocol: URLProtocol, @unchecked Sendable {
     private static let handledKey = "ReplayCaptureHandled"
 
@@ -158,7 +193,13 @@ public final class CaptureURLProtocol: URLProtocol, @unchecked Sendable {
 
 // MARK: - Capture Store (Actor for thread safety)
 
+/// An actor that stores capture configuration and captured entries.
+///
+/// This actor is used internally by `Capture`,
+/// and can also be used directly when integrating capture
+/// with custom destinations.
 public actor CaptureStore {
+    /// The shared capture store.
     public static let shared = CaptureStore()
 
     private var configuration: CaptureConfiguration?
@@ -167,6 +208,11 @@ public actor CaptureStore {
 
     var currentConfiguration: CaptureConfiguration? { configuration }
 
+    /// Sets the active capture configuration.
+    ///
+    /// Calling this method clears any previously captured entries.
+    ///
+    /// - Parameter config: The configuration to apply.
     public func configure(_ config: CaptureConfiguration) {
         configuration = config
         entries = []
@@ -203,12 +249,24 @@ public actor CaptureStore {
         entries
     }
 
+    /// Clears the active configuration and any captured entries.
     public func clear() {
         configuration = nil
         entries = []
         log = nil
     }
 
+    /// Records a request/response pair as a HAR entry.
+    ///
+    /// This method applies matchers and filters from the current configuration
+    /// before forwarding the resulting entry to `store(_:)`.
+    ///
+    /// - Parameters:
+    ///   - request: The request to record.
+    ///   - response: The response to record.
+    ///   - data: The response body data.
+    ///   - startTime: The time the request started.
+    ///   - duration: The request duration.
     public func recordEntry(
         request: URLRequest,
         response: HTTPURLResponse,
@@ -244,8 +302,18 @@ public actor CaptureStore {
 
 // MARK: - Capture Session Factory
 
+/// Capture APIs for recording live HTTP traffic as HAR entries.
+///
+/// Use `Capture.session(configuration:baseConfiguration:)` to create a `URLSession`
+/// that records requests through `CaptureURLProtocol`.
 public enum Capture {
-    /// Create a `URLSession` configured for capturing HTTP traffic.
+    /// Creates a `URLSession` configured for capturing HTTP traffic.
+    ///
+    /// - Parameters:
+    ///   - configuration: The capture configuration specifying destination,
+    ///     filters, and optional matchers.
+    ///   - baseConfiguration: The base `URLSessionConfiguration` to extend.
+    /// - Returns: A configured `URLSession` that records traffic as HAR entries.
     public static func session(
         configuration: CaptureConfiguration,
         baseConfiguration: URLSessionConfiguration = .default
@@ -269,7 +337,7 @@ public enum Capture {
         }
     }
 
-    /// Clear captured data.
+    /// Clears the active capture configuration and any captured entries.
     public static func clear() async {
         await CaptureStore.shared.clear()
     }

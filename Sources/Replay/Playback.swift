@@ -47,6 +47,10 @@ final class PlaybackStoreRegistry: @unchecked Sendable {
     }
 }
 
+/// A scope for replay playback configuration.
+///
+/// Use `.global` when you rely on globally registered `URLProtocol` state.
+/// Use `.test` to isolate playback state per test or task.
 public enum ReplayScope: Sendable {
     /// Uses global `URLProtocol.registerClass(...)` and `PlaybackStore.shared`.
     case global
@@ -58,19 +62,42 @@ public enum ReplayScope: Sendable {
     case test
 }
 
+/// Configuration for replaying HTTP traffic from HAR logs or in-memory stubs.
+///
+/// Use this type with `Playback.session(configuration:baseConfiguration:)`
+/// or with `PlaybackStore.configure(_:)` to control:
+/// - The replay source (HAR file, log, entries, or stubs)
+/// - The replay mode (strict, passthrough, record)
+/// - The matching and filtering strategy
 public struct PlaybackConfiguration: Sendable {
+    /// The source of recorded traffic to replay.
     public let source: Source
+
+    /// The replay mode.
     public let mode: Mode
+
+    /// Matchers used to match incoming requests to recorded entries.
     public let matchers: [Matcher]
+
+    /// Filters applied to entries as they are recorded in `.record` mode.
     public let filters: [Filter]
 
+    /// A source of recorded traffic for playback.
     public enum Source: Sendable {
+        /// Loads entries from a HAR file.
         case file(URL)
+
+        /// Uses entries from an in-memory HAR log.
         case log(HAR.Log)
+
+        /// Uses the provided entries directly.
         case entries([HAR.Entry])
+
+        /// Uses stubs converted to HAR entries.
         case stubs([Stub])
     }
 
+    /// A playback mode.
     public enum Mode: Sendable {
         /// Replay from archive; throw error on no match.
         case strict
@@ -80,6 +107,13 @@ public struct PlaybackConfiguration: Sendable {
         case record
     }
 
+    /// Creates a playback configuration.
+    ///
+    /// - Parameters:
+    ///   - source: The replay source.
+    ///   - mode: The replay mode.
+    ///   - matchers: Matchers used to match incoming requests to entries.
+    ///   - filters: Filters applied to newly recorded entries in `.record` mode.
     public init(
         source: Source,
         mode: Mode = .strict,
@@ -100,6 +134,10 @@ private struct UnsafeSendable<T>: @unchecked Sendable {
     let value: T
 }
 
+/// A `URLProtocol` implementation that replays HTTP responses from recorded traffic.
+///
+/// This protocol routes requests to a `PlaybackStore`,
+/// returning a recorded response when a match is found.
 public final class PlaybackURLProtocol: URLProtocol {
     private static let handledKey = "ReplayPlaybackHandled"
 
@@ -156,12 +194,21 @@ public final class PlaybackURLProtocol: URLProtocol {
 
 // MARK: - Playback Store
 
+/// An actor that replays requests from recorded traffic.
+///
+/// Configure the store with `configure(_:)`,
+/// then call `handleRequest(_:)` to obtain a replayed response.
 public actor PlaybackStore {
+    /// The shared playback store.
     public static let shared = PlaybackStore()
 
     private var configuration: PlaybackConfiguration?
     private var entries: [HAR.Entry] = []
 
+    /// Configures the store for playback.
+    ///
+    /// - Parameter config: The playback configuration to apply.
+    /// - Throws: Any error thrown while loading the configured source.
     public func configure(_ config: PlaybackConfiguration) async throws {
         configuration = config
 
@@ -199,6 +246,19 @@ public actor PlaybackStore {
         entries
     }
 
+    /// Handles a URL request using the current playback configuration.
+    ///
+    /// In `.strict` mode,
+    /// this method throws when no matching entry is found.
+    /// In `.passthrough` mode,
+    /// this method performs the request against the live network.
+    /// In `.record` mode,
+    /// this method performs the request,
+    /// records the result,
+    /// and appends it to the configured archive when applicable.
+    ///
+    /// - Parameter request: The request to handle.
+    /// - Returns: A tuple of `HTTPURLResponse` and body `Data`.
     public func handleRequest(_ request: URLRequest) async throws -> (HTTPURLResponse, Data) {
         guard let config = configuration else {
             throw ReplayError.notConfigured
@@ -269,6 +329,7 @@ public actor PlaybackStore {
         }
     }
 
+    /// Clears the active configuration and any loaded entries.
     public func clear() {
         configuration = nil
         entries = []
@@ -314,6 +375,10 @@ public actor PlaybackStore {
 
 // MARK: - Playback Session Factory
 
+/// Playback APIs for replaying HTTP traffic from recorded sources.
+///
+/// Use `Playback.session(configuration:baseConfiguration:)` to create a `URLSession`
+/// that intercepts requests through `PlaybackURLProtocol`.
 public enum Playback {
     /// Create `URLSession` configured for playback using the provided configuration.
     public static func session(

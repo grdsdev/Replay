@@ -352,9 +352,9 @@ or you can filter an existing HAR file using the plugin (see Tooling).
 
 ### Use matching strategies to make fixtures stable
 
-By default, replay fixtures are matched by HTTP method + full URL (including query).
-That's great for fully deterministic endpoints,
-but many APIs have volatile query items
+By default, replay fixtures are matched by HTTP method + full URL (`.url`),
+which is strict (scheme/host/port/path/query/fragment all must match).
+That's great for deterministic endpoints, but many APIs have volatile query items
 (pagination cursors, timestamps, cache-busters).
 
 In those cases, you can configure to match on just HTTP method and URL path (ignoring query):
@@ -364,15 +364,49 @@ In those cases, you can configure to match on just HTTP method and URL path (ign
 func fetchUser() async throws { /* ... */ }
 ```
 
+Matchers **compose with AND semantics**: Replay considers an entry a match only if **all**
+matchers in the array match the incoming request against the candidate request from the HAR.
+
+```swift
+// Equivalent: both mean "method AND path must match"
+@Test(.replay("fetchUser", matching: [.method, .path]))
+@Test(.replay("fetchUser", matching: [.path, .method]))
+```
+
+If you need OR / fuzzy behavior, use `.custom` (for example, “either of these headers”, or “path prefix”).
+
 Available matchers:
-- `.method`
-- `.host`
-- `.path`
-- `.query`
-- `.url` (full absolute URL including query)
+- `.method` (case-insensitive)
+- `.host` (string equality on `URL.host`)
+- `.path` (string equality on `URL.path`)
+- `.query` (order-sensitive `URLComponents.queryItems` equality)
+- `.fragment` (`URL.fragment`; rarely useful for HTTP APIs)
+- `.url` (strict `URL.absoluteString` equality)
 - `.headers([String])`
-- `.body`
+- `.body` (matches `URLRequest.httpBody` bytes; useful to disambiguate same endpoint)
 - `.custom((URLRequest, URLRequest) -> Bool)`
+
+Examples:
+
+```swift
+// Strict default: method + full URL
+@Test(.replay("fetchUser", matching: [.method, .url]))
+```
+
+```swift
+// Ignore volatile query items but still disambiguate by Accept header.
+@Test(.replay("fetchUser", matching: [.method, .path, .headers(["Accept"])]))
+```
+
+```swift
+// Same endpoint but multiple payload variants (e.g. POST bodies).
+@Test(.replay("createPost", matching: [.method, .path, .body]))
+```
+
+Canonicalization / normalization notes:
+- `.url` is intentionally strict: scheme/port/query ordering/fragment differences will not match.
+- Query comparisons are **order-sensitive**: `?a=1&b=2` ≠ `?b=2&a=1` when using `.query` / `.url`.
+- Header matching uses `URLRequest.value(forHTTPHeaderField:)` semantics (case-insensitive names).
 
 ### Use filters to remove sensitive and unnecessary
 

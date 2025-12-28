@@ -272,6 +272,10 @@ struct YourSuite {
 }
 ```
 
+> [!TIP]
+> If multiple tests in the same process use Replay, add `.serialized` to the suite to avoid
+> cross-test interference through global `URLProtocol` registration (or use `scope: .test` + `Replay.session`).
+
 ### 3) Run tests (playback-only by default)
 
 The first run should fail if `Replays/fetchUser.har` doesn't exist yet.

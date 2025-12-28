@@ -163,6 +163,89 @@ struct FilterTests {
         }
     }
 
+    // MARK: - Allowlist / Keeping Tests
+
+    @Suite("Filter allowlist convenience")
+    struct AllowlistTests {
+        @Test("headers(keeping:) keeps only allowed request headers")
+        func headersKeepingRequestHeaders() async {
+            let entry = makeEntryWithHeaders(
+                requestHeaders: [
+                    HAR.Header(name: "Authorization", value: "secret"),
+                    HAR.Header(name: "Content-Type", value: "application/json"),
+                    HAR.Header(name: "X-Debug", value: "1"),
+                ],
+                responseHeaders: []
+            )
+
+            let filter = Filter.headers(keeping: ["Content-Type"])
+            let result = await filter.apply(to: entry)
+
+            #expect(result.request.headers.map(\.name) == ["Content-Type"])
+        }
+
+        @Test("headers(keeping:) keeps only allowed response headers")
+        func headersKeepingResponseHeaders() async {
+            let entry = makeEntryWithHeaders(
+                requestHeaders: [],
+                responseHeaders: [
+                    HAR.Header(name: "Set-Cookie", value: "a=b"),
+                    HAR.Header(name: "Content-Type", value: "application/json"),
+                    HAR.Header(name: "Content-Length", value: "100"),
+                ]
+            )
+
+            let filter = Filter.headers(keeping: ["Content-Type", "Content-Length"])
+            let result = await filter.apply(to: entry)
+
+            #expect(result.response.headers.map(\.name) == ["Content-Type", "Content-Length"])
+        }
+
+        @Test("headers(keeping:) matches header names case-insensitively")
+        func headersKeepingCaseInsensitive() async {
+            let entry = makeEntryWithHeaders(
+                requestHeaders: [
+                    HAR.Header(name: "content-type", value: "application/json"),
+                    HAR.Header(name: "X-Other", value: "ignore"),
+                ],
+                responseHeaders: []
+            )
+
+            let filter = Filter.headers(keeping: ["CONTENT-TYPE"])
+            let result = await filter.apply(to: entry)
+
+            #expect(result.request.headers.map(\.name) == ["content-type"])
+        }
+
+        @Test("queryParameters(keeping:) keeps only allowed query parameters")
+        func queryParametersKeeping() async {
+            let entry = makeEntryWithQueryParameters([
+                HAR.QueryParameter(name: "api_key", value: "secret"),
+                HAR.QueryParameter(name: "page", value: "1"),
+                HAR.QueryParameter(name: "limit", value: "10"),
+            ])
+
+            let filter = Filter.queryParameters(keeping: ["page", "limit"])
+            let result = await filter.apply(to: entry)
+
+            #expect(result.request.queryString.map(\.name) == ["page", "limit"])
+        }
+
+        @Test("queryParameters(keeping:) is case-sensitive for parameter names")
+        func queryParametersKeepingCaseSensitive() async {
+            let entry = makeEntryWithQueryParameters([
+                HAR.QueryParameter(name: "API_KEY", value: "value1"),
+                HAR.QueryParameter(name: "api_key", value: "value2"),
+            ])
+
+            let filter = Filter.queryParameters(keeping: ["api_key"])
+            let result = await filter.apply(to: entry)
+
+            #expect(result.request.queryString.map(\.name) == ["api_key"])
+            #expect(result.request.queryString.first?.value == "value2")
+        }
+    }
+
     // MARK: - Body Filter Tests
 
     @Suite("Filter.body Tests")

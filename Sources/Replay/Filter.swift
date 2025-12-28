@@ -111,6 +111,30 @@ extension Filter {
         .headers(names: Set(headers.map { $0.lowercased() }), replacement: replacement)
     }
 
+    /// Keeps only the specified HTTP headers (in both the request and response), removing all others.
+    ///
+    /// Header name matching is case-insensitive.
+    public static func headers(keeping headers: [String]) -> Self {
+        let allowlist = Set(headers.map { $0.lowercased() })
+        return .custom { entry in
+            var modified = entry
+            modified.request.headers = entry.request.headers.filter { header in
+                allowlist.contains(header.name.lowercased())
+            }
+            modified.response.headers = entry.response.headers.filter { header in
+                allowlist.contains(header.name.lowercased())
+            }
+            return modified
+        }
+    }
+
+    /// Keeps only the specified HTTP headers (in both the request and response), removing all others.
+    ///
+    /// Header name matching is case-insensitive.
+    public static func headers(keeping headers: String...) -> Self {
+        .headers(keeping: headers)
+    }
+
     public static func queryParameters(_ names: String..., replacement: String = "FILTERED") -> Self {
         .queryParameters(removing: names, replacement: replacement)
     }
@@ -120,6 +144,27 @@ extension Filter {
         replacement: String = "FILTERED"
     ) -> Self {
         .queryParameters(names: Set(parameters), replacement: replacement)
+    }
+
+    /// Keeps only the specified URL query parameters (in the request), removing all others.
+    ///
+    /// Query parameter name matching is case-sensitive and uses exact string equality.
+    public static func queryParameters(keeping parameters: [String]) -> Self {
+        let allowlist = Set(parameters)
+        return .custom { entry in
+            var modified = entry
+            modified.request.queryString = entry.request.queryString.filter { param in
+                allowlist.contains(param.name)
+            }
+            return modified
+        }
+    }
+
+    /// Keeps only the specified URL query parameters (in the request), removing all others.
+    ///
+    /// Query parameter name matching is case-sensitive and uses exact string equality.
+    public static func queryParameters(keeping parameters: String...) -> Self {
+        .queryParameters(keeping: parameters)
     }
 
     public static func body(replacing pattern: String, with replacement: String = "[FILTERED]")

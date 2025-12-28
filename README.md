@@ -1,8 +1,5 @@
 # Replay
 
-> [!CAUTION]
-> This package is in active development, and may make breaking changes before an initial release.
-
 HTTP recording, playback, and stubbing for Swift,
 built around <abbr title="HTTP Archive">HAR</abbr> fixtures
 and Swift Testing traits.

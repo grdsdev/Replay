@@ -20,8 +20,9 @@ struct Post: Codable {
 // MARK: - Example API Client
 
 /// A simple API client that demonstrates how Replay integrates with real code.
-/// Notice: No special test hooks or session injection required!
-struct ExampleAPIClient {
+actor ExampleAPIClient {
+    static let shared = ExampleAPIClient()
+
     let baseURL: URL
     let session: URLSession
 
@@ -68,13 +69,12 @@ struct ExampleAPIClient {
 /// ```
 @Suite("Example API Tests", .serialized, .playbackIsolated(replaysFrom: Bundle.module))
 struct ExampleAPITests {
-
     /// Test fetching a single user.
     ///
     /// Uses: `Replays/fetchUser.har`
     @Test(.replay("fetchUser", matching: [.method, .path]))
     func fetchUser() async throws {
-        let client = ExampleAPIClient()
+        let client = ExampleAPIClient.shared
         let user = try await client.fetchUser(id: 42)
 
         #expect(user.id == 42)
@@ -87,7 +87,7 @@ struct ExampleAPITests {
     /// Uses: `Replays/fetchPosts.har`
     @Test(.replay("fetchPosts", matching: [.method, .path]))
     func fetchPosts() async throws {
-        let client = ExampleAPIClient()
+        let client = ExampleAPIClient.shared
         let posts = try await client.fetchPosts()
 
         #expect(posts.count == 3)
@@ -100,7 +100,7 @@ struct ExampleAPITests {
     /// Uses: `Replays/fetchPosts.har` (contains both GET and POST entries)
     @Test(.replay("fetchPosts", matching: [.method, .path]))
     func createPost() async throws {
-        let client = ExampleAPIClient()
+        let client = ExampleAPIClient.shared
         let post = try await client.createPost(title: "New Post", authorId: 42)
 
         #expect(post.id == 4)
@@ -120,17 +120,11 @@ struct ExampleAPITests {
         )
     )
     func fetchUserWithFilters() async throws {
-        let client = ExampleAPIClient()
+        let client = ExampleAPIClient.shared
         let user = try await client.fetchUser(id: 42)
 
         #expect(user.name == "Alice")
     }
-}
-
-// MARK: - Tests Demonstrating Error Handling
-
-@Suite("Replay Error Handling", .serialized, .playbackIsolated(replaysFrom: Bundle.module))
-struct ReplayErrorHandlingTests {
 
     @Test("Missing archive provides helpful error message")
     func missingArchiveError() async throws {
@@ -217,4 +211,33 @@ struct ReplayErrorHandlingTests {
             }
         }
     }
+}
+
+// MARK: - Suite without .playbackIsolated
+
+@Suite("Example API Tests Without Playback Isolated", .serialized)
+struct ExampleAPITestsWithoutPlaybackIsolated {
+    /// Test fetching a single user.
+    ///
+    /// Uses: `Replays/fetchUser.har`
+    @Test("Fetch User Without Playback Isolated", .replay("fetchUser"))
+    func fetchUser() async throws {
+        let client = ExampleAPIClient.shared
+        let user = try await client.fetchUser(id: 42)
+
+        #expect(user.id == 42)
+        #expect(user.name == "Alice")
+        #expect(user.email == "alice@example.com")
+    }
+}
+
+// MARK: - Test without Suite
+@Test("Fetch User Without Suite", .replay("fetchUser"))
+func fetchUserWithoutSuite() async throws {
+    let client = ExampleAPIClient.shared
+    let user = try await client.fetchUser(id: 42)
+
+    #expect(user.id == 42)
+    #expect(user.name == "Alice")
+    #expect(user.email == "alice@example.com")
 }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Determines how Replay should behave in tests.
-public enum RecordingMode {
+public enum RecordingMode: String, Hashable, CaseIterable {
     /// Only replay from archives (default).
     case playback
 
@@ -16,55 +16,20 @@ public enum RecordingMode {
     /// - Returns: The inferred recording mode.
     ///
     ///   This value is computed from environment variables and process arguments:
-    ///   - `.live` when `REPLAY_MODE=live` or `REPLAY_LIVE=1` is set,
-    ///     or when `--enable-replay-live` is present.
-    ///   - `.record` when `REPLAY_MODE=record` or `REPLAY_RECORDING=1` is set,
-    ///     or when `--enable-replay-recording` is present.
-    ///   - `.playback` otherwise.
+    ///   - `.playback` (default) when `REPLAY_MODE=playback` or not set
+    ///   - `.record` when `REPLAY_MODE=record` is set,
+    ///     or when `--enable-replay-recording` is present
+    ///   - `.live` when `REPLAY_MODE=live` is set,
+    ///     or when `--enable-replay-live` is present
     public static var current: RecordingMode {
-        if let mode = env("REPLAY_MODE")?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-            switch mode {
-            case "live", "passthrough":
-                return .live
-            case "record", "recording":
-                return .record
-            case "playback", "replay":
-                return .playback
-            default:
-                break
-            }
-        }
-
-        if isTruthy(env("REPLAY_LIVE")) {
-            return .live
-        }
-        if isTruthy(env("REPLAY_RECORDING")) {
-            return .record
-        }
-
-        // Some runners may support passing custom args to the test process.
-        if CommandLine.arguments.contains("--enable-replay-live") {
-            return .live
-        }
-        if CommandLine.arguments.contains("--enable-replay-recording") {
-            return .record
+        if let modeString = ProcessInfo.processInfo.environment["REPLAY_MODE"]?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ).lowercased(),
+            let mode = RecordingMode(rawValue: modeString)
+        {
+            return mode
         }
 
         return .playback
-    }
-
-    private static func env(_ key: String) -> String? {
-        guard let value = getenv(key) else { return nil }
-        return String(cString: value)
-    }
-
-    private static func isTruthy(_ value: String?) -> Bool {
-        guard let value else { return false }
-        switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "1", "true", "yes", "y", "on":
-            return true
-        default:
-            return false
-        }
     }
 }

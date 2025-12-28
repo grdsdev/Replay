@@ -8,10 +8,12 @@ import Foundation
     /// A Swift Testing trait that enables Replay for the duration of a test or suite.
     ///
     /// By default, Replay runs in playback-only mode and will fail if the archive is missing.
-    /// Recording is an explicit action, enabled via `REPLAY_MODE=record` (or `REPLAY_RECORDING=1`).
+    /// Recording is an explicit action, enabled via `REPLAY_MODE=record`.
     ///
     /// To run the test against the live network (ignoring fixtures and without recording),
-    /// set `REPLAY_MODE=live` (or `REPLAY_LIVE=1`).
+    /// set `REPLAY_MODE=live`.
+    ///
+    /// Valid values for `REPLAY_MODE`: `playback`, `record`, `live`.
     public struct ReplayTrait: TestTrait, SuiteTrait, TestScoping {
         private let archiveName: String?
         private let stubs: [Stub]?

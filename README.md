@@ -273,7 +273,29 @@ to prevent accidental recording.
 
 ```console
 $ swift test
-❌  Test fetchUser() recorded an issue: No Matching Entry in Archive
+❌  Test fetchUser() recorded an issue at ExampleTests.swift
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  No Matching Entry in Archive
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Request: GET https://api.example.com/users/42
+Archive: /path/to/.../Replays/fetchUser.har
+
+This request was not found in the replay archive.
+
+Options:
+1. Run against the live network (skip replay + no recording):
+   REPLAY_MODE=live swift test --filter <test-name>
+
+2. Update the archive with new requests:
+   REPLAY_MODE=record swift test --filter <test-name>
+
+3. Check if request details changed (URL, method, headers)
+   and update test expectations
+
+4. Inspect the archive:
+   swift package replay inspect /path/to/.../Replays/fetchUser.har
+
 ```
 
 ### 5. Record

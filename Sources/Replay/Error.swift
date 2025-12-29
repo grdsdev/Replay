@@ -7,8 +7,11 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
     /// Replay has not been configured (e.g. PlaybackStore missing configuration).
     case notConfigured
 
-    /// Invalid replay environment value.
+    /// Invalid `REPLAY_RECORD_MODE` environment value.
     case invalidRecordingMode(String)
+
+    /// Invalid `REPLAY_PLAYBACK_MODE` environment value.
+    case invalidPlaybackMode(String)
 
     // MARK: - Validation Errors
 
@@ -48,11 +51,16 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
 
         case .invalidRecordingMode(let value):
             return """
-                Invalid Replay configuration value: "\(value)"
+                Invalid REPLAY_RECORD_MODE value: "\(value)"
 
-                Valid values for:
-                  REPLAY_RECORD_MODE: none, once, rewrite
-                  REPLAY_PLAYBACK_MODE: strict, passthrough, live
+                Valid values: none, once, rewrite
+                """
+
+        case .invalidPlaybackMode(let value):
+            return """
+                Invalid REPLAY_PLAYBACK_MODE value: "\(value)"
+
+                Valid values: strict, passthrough, live
                 """
 
         case .invalidRequest(let reason):
@@ -146,6 +154,8 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
             return "Replay Not Configured"
         case .invalidRecordingMode:
             return "Invalid Recording Mode"
+        case .invalidPlaybackMode:
+            return "Invalid Playback Mode"
         case .invalidRequest:
             return "Invalid Request"
         case .invalidResponse:
@@ -179,14 +189,15 @@ public enum ReplayError: Error, Sendable, CustomStringConvertible, LocalizedErro
         switch self {
         case .notConfigured: return 0
         case .invalidRecordingMode: return 1
-        case .invalidRequest: return 2
-        case .invalidResponse: return 3
-        case .invalidURL: return 4
-        case .invalidBase64: return 5
-        case .archiveNotFound: return 6
-        case .archiveMissing: return 7
-        case .noMatchingEntry: return 8
-        case .noMatchingStub: return 9
+        case .invalidPlaybackMode: return 2
+        case .invalidRequest: return 3
+        case .invalidResponse: return 4
+        case .invalidURL: return 5
+        case .invalidBase64: return 6
+        case .archiveNotFound: return 7
+        case .archiveMissing: return 8
+        case .noMatchingEntry: return 9
+        case .noMatchingStub: return 10
         }
     }
 

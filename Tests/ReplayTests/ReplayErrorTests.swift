@@ -22,9 +22,18 @@ struct ReplayErrorTests {
         func invalidRecordingMode() {
             let error = ReplayError.invalidRecordingMode("invalid-mode")
 
-            #expect(error.description.contains("Invalid Replay configuration"))
+            #expect(error.description.contains("Invalid REPLAY_RECORD_MODE"))
             #expect(error.description.contains("invalid-mode"))
-            #expect(error.description.contains("REPLAY_RECORD_MODE: none, once, rewrite"))
+            #expect(error.description.contains("none, once, rewrite"))
+        }
+
+        @Test("invalidPlaybackMode error")
+        func invalidPlaybackMode() {
+            let error = ReplayError.invalidPlaybackMode("invalid-mode")
+
+            #expect(error.description.contains("Invalid REPLAY_PLAYBACK_MODE"))
+            #expect(error.description.contains("invalid-mode"))
+            #expect(error.description.contains("strict, passthrough, live"))
         }
 
         @Test("noMatchingEntry error")
@@ -136,6 +145,7 @@ struct ReplayErrorTests {
             let errors: [ReplayError] = [
                 .notConfigured,
                 .invalidRecordingMode("invalid"),
+                .invalidPlaybackMode("invalid"),
                 .invalidRequest("test reason"),
                 .invalidResponse,
                 .invalidURL("bad-url"),
@@ -165,6 +175,7 @@ struct ReplayErrorTests {
         func errorDescriptionConciseSummary() {
             #expect(ReplayError.notConfigured.errorDescription == "Replay Not Configured")
             #expect(ReplayError.invalidRecordingMode("invalid").errorDescription == "Invalid Recording Mode")
+            #expect(ReplayError.invalidPlaybackMode("invalid").errorDescription == "Invalid Playback Mode")
             #expect(ReplayError.invalidRequest("reason").errorDescription == "Invalid Request")
             #expect(ReplayError.invalidResponse.errorDescription == "Invalid Response")
             #expect(ReplayError.invalidURL("url").errorDescription == "Invalid URL")
@@ -232,6 +243,7 @@ struct ReplayErrorTests {
             let errors: [ReplayError] = [
                 .notConfigured,
                 .invalidRecordingMode("invalid"),
+                .invalidPlaybackMode("invalid"),
                 .invalidRequest("reason"),
                 .invalidResponse,
                 .invalidURL("url"),
@@ -279,7 +291,7 @@ struct ReplayErrorTests {
             let nsError = replayError as NSError
 
             #expect(nsError.domain == "Replay.ReplayError")
-            #expect(nsError.code == 8)
+            #expect(nsError.code == 9)
             #expect(nsError.localizedDescription == "No Matching Entry")
             #expect(nsError.localizedFailureReason == replayError.description)
             #expect(nsError.localizedFailureReason?.contains("GET") == true)
@@ -289,20 +301,22 @@ struct ReplayErrorTests {
         func errorCodeValues() {
             #expect(ReplayError.notConfigured.errorCode == 0)
             #expect(ReplayError.invalidRecordingMode("invalid").errorCode == 1)
-            #expect(ReplayError.invalidRequest("reason").errorCode == 2)
-            #expect(ReplayError.invalidResponse.errorCode == 3)
-            #expect(ReplayError.invalidURL("url").errorCode == 4)
-            #expect(ReplayError.invalidBase64("data").errorCode == 5)
-            #expect(ReplayError.archiveNotFound(URL(fileURLWithPath: "/file.har")).errorCode == 6)
+            #expect(ReplayError.invalidPlaybackMode("invalid").errorCode == 2)
+            #expect(ReplayError.invalidRequest("reason").errorCode == 3)
+            #expect(ReplayError.invalidResponse.errorCode == 4)
+            #expect(ReplayError.invalidURL("url").errorCode == 5)
+            #expect(ReplayError.invalidBase64("data").errorCode == 6)
+            #expect(ReplayError.archiveNotFound(URL(fileURLWithPath: "/file.har")).errorCode == 7)
             #expect(
                 ReplayError.archiveMissing(
                     path: URL(fileURLWithPath: "/file.har"), testName: "test", instructions: "instructions"
-                ).errorCode == 7)
+                ).errorCode == 8)
             #expect(
                 ReplayError.noMatchingEntry(method: "GET", url: "https://example.com", archivePath: "/archive.har")
-                    .errorCode == 8)
+                    .errorCode == 9)
             #expect(
-                ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "").errorCode == 9
+                ReplayError.noMatchingStub(method: "GET", url: "https://example.com", availableStubs: "").errorCode
+                    == 10
             )
         }
     }

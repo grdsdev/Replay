@@ -51,7 +51,7 @@ public enum Replay {
         /// Gets the playback mode from environment variables.
         ///
         /// - Returns: The mode from `REPLAY_PLAYBACK_MODE` environment variable.
-        /// - Throws: `ReplayError.invalidRecordingMode` if `REPLAY_PLAYBACK_MODE` is set to an invalid value.
+        /// - Throws: `ReplayError.invalidPlaybackMode` if `REPLAY_PLAYBACK_MODE` is set to an invalid value.
         ///
         ///   Valid values for `REPLAY_PLAYBACK_MODE`: `strict`, `passthrough`, `live`.
         ///   If `REPLAY_PLAYBACK_MODE` is not set, returns `.strict`.
@@ -61,7 +61,7 @@ public enum Replay {
             }
 
             guard let mode = PlaybackMode(rawValue: value) else {
-                throw ReplayError.invalidRecordingMode(value)
+                throw ReplayError.invalidPlaybackMode(value)
             }
 
             return mode

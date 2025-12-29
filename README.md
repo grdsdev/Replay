@@ -4,8 +4,10 @@ HTTP recording, playback, and stubbing for Swift,
 built around <a href="https://en.wikipedia.org/wiki/HAR_(file_format)"><abbr title="HTTP Archive">HAR</abbr> fixtures</a>
 and [Swift Testing traits](https://developer.apple.com/documentation/testing/traits).
 
-Inspired by Ruby's [VCR](https://github.com/vcr/vcr) and 
+Inspired by Ruby's [VCR](https://github.com/vcr/vcr) and
 Python's [VCR.py](https://github.com/kevin1024/vcrpy) / [pytest-recording](https://github.com/kiwicom/pytest-recording).
+
+---
 
 Add the `.replay` trait to a `@Test` declaration to specify a HAR file
 containing prerecorded HTTP responses:

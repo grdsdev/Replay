@@ -213,13 +213,25 @@ import Foundation
                 .replacingOccurrences(of: ")", with: "")
         }
 
+        /// Normalizes an archive name by removing the `.har` extension if present.
+        ///
+        /// - Parameter name: The archive name, optionally including `.har` extension.
+        /// - Returns: The archive name without the `.har` extension.
+        private func normalizeArchiveName(_ name: String) -> String {
+            if name.hasSuffix(".har") {
+                return String(name.dropLast(4))
+            }
+            return name
+        }
+
         private func getArchiveURL(name: String, test: Test) async throws -> URL {
+            let normalizedName = normalizeArchiveName(name)
             // 1. Check explicit override from IsolationTrait or defaults
             if let rootURL {
-                return rootURL.appendingPathComponent("\(name).har")
+                return rootURL.appendingPathComponent("\(normalizedName).har")
             }
             if let defaultRootURL = await ReplayTestDefaults.shared.getReplaysRootURL() {
-                return defaultRootURL.appendingPathComponent("\(name).har")
+                return defaultRootURL.appendingPathComponent("\(normalizedName).har")
             }
 
             // 2. Resolve via Source Location (Preferred for local development & recording)
@@ -236,7 +248,7 @@ import Foundation
                             candidateSource
                             .deletingLastPathComponent()  // File directory
                             .appendingPathComponent(directory)  // "Replays"
-                            .appendingPathComponent("\(name).har")
+                            .appendingPathComponent("\(normalizedName).har")
 
                         // If recording, use this source-relative path
                         if (try? RecordingMode.fromEnvironment()) == .record {
@@ -260,7 +272,7 @@ import Foundation
             let bundles = Bundle.allBundles + Bundle.allFrameworks
             for bundle in bundles {
                 if let url = bundle.url(
-                    forResource: name, withExtension: "har", subdirectory: directory)
+                    forResource: normalizedName, withExtension: "har", subdirectory: directory)
                 {
                     return url
                 }
@@ -272,7 +284,7 @@ import Foundation
                 try? FileManager.default.createDirectory(
                     at: cwdURL, withIntermediateDirectories: true)
             }
-            return cwdURL.appendingPathComponent("\(name).har")
+            return cwdURL.appendingPathComponent("\(normalizedName).har")
         }
     }
 
@@ -284,13 +296,13 @@ import Foundation
 
         /// Uses Replay with a specific archive name.
         ///
-        /// - Parameter name: The HAR archive name (without extension).
+        /// - Parameter name: The HAR archive name (with or without `.har` extension).
         public static func replay(_ name: String) -> Self { Self(name) }
 
         /// Uses Replay with a custom matching configuration.
         ///
         /// - Parameters:
-        ///   - name: The HAR archive name (without extension).
+        ///   - name: The HAR archive name (with or without `.har` extension).
         ///     When `nil`,
         ///     Replay derives a name from the test.
         ///   - matchers: Matchers used to match incoming requests to recorded entries.
@@ -304,7 +316,7 @@ import Foundation
         /// Uses Replay with a custom matching configuration and filters.
         ///
         /// - Parameters:
-        ///   - name: The HAR archive name (without extension).
+        ///   - name: The HAR archive name (with or without `.har` extension).
         ///     When `nil`,
         ///     Replay derives a name from the test.
         ///   - matchers: Matchers used to match incoming requests to recorded entries.

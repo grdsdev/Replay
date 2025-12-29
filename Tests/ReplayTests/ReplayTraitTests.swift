@@ -163,6 +163,122 @@ struct ReplayTraitTests {
         #expect(mode == .playback || mode == .record || mode == .live)
     }
 
+    @Test("Archive name without .har suffix works")
+    func archiveNameWithoutSuffix() async throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        let archiveName = "test_archive"
+        let archiveURL = tempDir.appendingPathComponent("\(archiveName).har")
+
+        // Create a minimal HAR file
+        let harContent = """
+            {
+              "log": {
+                "version": "1.2",
+                "creator": {
+                  "name": "Replay",
+                  "version": "1.0"
+                },
+                "entries": []
+              }
+            }
+            """
+        try harContent.write(to: archiveURL, atomically: true, encoding: .utf8)
+
+        let trait = ReplayTrait(archiveName, directory: tempDir.path, rootURL: tempDir)
+
+        // Should not throw since archive exists
+        try await trait.provideScope(
+            for: Test.current!,
+            testCase: nil,
+            performing: {}
+        )
+    }
+
+    @Test("Archive name with .har suffix is normalized")
+    func archiveNameWithSuffix() async throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        let archiveName = "test_archive"
+        let archiveURL = tempDir.appendingPathComponent("\(archiveName).har")
+
+        // Create a minimal HAR file
+        let harContent = """
+            {
+              "log": {
+                "version": "1.2",
+                "creator": {
+                  "name": "Replay",
+                  "version": "1.0"
+                },
+                "entries": []
+              }
+            }
+            """
+        try harContent.write(to: archiveURL, atomically: true, encoding: .utf8)
+
+        // Test with .har suffix - should find the same file
+        let trait = ReplayTrait("\(archiveName).har", directory: tempDir.path, rootURL: tempDir)
+
+        // Should not throw since archive exists (normalized name matches)
+        try await trait.provideScope(
+            for: Test.current!,
+            testCase: nil,
+            performing: {}
+        )
+    }
+
+    @Test("Archive name with and without .har suffix resolve to same path")
+    func archiveNameNormalization() async throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        let archiveName = "normalization_test"
+        let traitWithoutSuffix = ReplayTrait(archiveName, directory: tempDir.path, rootURL: tempDir)
+        let traitWithSuffix = ReplayTrait("\(archiveName).har", directory: tempDir.path, rootURL: tempDir)
+
+        // Both should throw archiveMissing with the same path
+        do {
+            try await traitWithoutSuffix.provideScope(
+                for: Test.current!,
+                testCase: nil,
+                performing: {}
+            )
+            Issue.record("Expected archiveMissing error")
+        } catch let error as ReplayError {
+            if case .archiveMissing(let path1, _, _) = error {
+                do {
+                    try await traitWithSuffix.provideScope(
+                        for: Test.current!,
+                        testCase: nil,
+                        performing: {}
+                    )
+                    Issue.record("Expected archiveMissing error")
+                } catch let error2 as ReplayError {
+                    if case .archiveMissing(let path2, _, _) = error2 {
+                        // Both should point to the same normalized path
+                        #expect(path1 == path2)
+                        #expect(path1.lastPathComponent == "\(archiveName).har")
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func makeTestEntry(

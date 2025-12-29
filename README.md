@@ -44,12 +44,12 @@ The `.replay("fetchUser")` trait loads responses from `Replays/fetchUser.har`.
   "log": {
     "version": "1.2",
     "creator": {
-      "name": "Replay",
+      "name": "Replay/1.0",
       "version": "1.0"
     },
     "entries": [
       {
-        "startedDateTime": "2025-12-31T09:41:00.000Z",
+        "startedDateTime": "2025-12-30T09:41:00.000Z",
         "time": 150,
         "request": {
           "method": "GET",
@@ -416,19 +416,42 @@ func fetchGreeting() async throws {
 
 By default, Replay uses global `URLProtocol` registration with serialized access
 to prevent cross-test interference.
+This means tests using `.replay()` run one at a time,
+even when Swift Testing would otherwise run them in parallel.
 
-For parallel execution, use `scope: .test` with `Replay.session`:
+For true parallel execution, use `scope: .test` to isolate each test's playback state:
 
 ```swift
 @Suite(.playbackIsolated(replaysFrom: Bundle.module))
 struct ParallelizableAPITests {
     @Test(.replay("fetchUser", matching: [.method, .path], scope: .test))
     func fetchUser() async throws {
+        // Use Replay.session instead of URLSession.shared
         let client = ExampleAPIClient(session: Replay.session)
         _ = try await client.fetchUser(id: 42)
     }
+
+    @Test(.replay("fetchPosts", matching: [.method, .path], scope: .test))
+    func fetchPosts() async throws {
+        // Each test gets its own isolated playback store
+        let client = ExampleAPIClient(session: Replay.session)
+        _ = try await client.fetchPosts()
+    }
 }
 ```
+
+**Key differences with `scope: .test`:**
+
+| Aspect | `scope: .global` (default) | `scope: .test` |
+|--------|---------------------------|----------------|
+| Execution | Serialized (one test at a time) | Parallel |
+| URLSession | Works with `URLSession.shared` | Requires `Replay.session` |
+| State isolation | Shared global state | Per-test isolated state |
+
+> [!IMPORTANT]
+> When using `scope: .test`, you must use `Replay.session` (or `Replay.makeSession()`)
+> instead of `URLSession.shared`. The test-scoped playback store is routed via a custom
+> HTTP header that only `Replay.session` includes.
 
 ### Multiple requests per test
 

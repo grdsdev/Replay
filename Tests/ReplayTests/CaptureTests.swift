@@ -383,7 +383,7 @@ struct CaptureTests {
         @Test("session creates URLSession with CaptureURLProtocol")
         func sessionCreatesURLSession() async {
             let config = CaptureConfiguration(destination: .memory)
-            let session = Capture.session(configuration: config)
+            let session = await Capture.session(configuration: config)
 
             let protocolClasses = session.configuration.protocolClasses ?? []
             let hasCaptureProtocol = protocolClasses.contains { $0 == CaptureURLProtocol.self }
@@ -399,7 +399,7 @@ struct CaptureTests {
             baseConfig.timeoutIntervalForRequest = 30
 
             let captureConfig = CaptureConfiguration(destination: .memory)
-            let session = Capture.session(
+            let session = await Capture.session(
                 configuration: captureConfig,
                 baseConfiguration: baseConfig
             )

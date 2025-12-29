@@ -317,15 +317,13 @@ public enum Capture {
     public static func session(
         configuration: CaptureConfiguration,
         baseConfiguration: URLSessionConfiguration = .default
-    ) -> URLSession {
+    ) async -> URLSession {
         let config = baseConfiguration
         var protocols = config.protocolClasses ?? []
         protocols.insert(CaptureURLProtocol.self, at: 0)
         config.protocolClasses = protocols
 
-        Task {
-            await CaptureStore.shared.configure(configuration)
-        }
+        await CaptureStore.shared.configure(configuration)
 
         return URLSession(configuration: config)
     }

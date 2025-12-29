@@ -217,15 +217,15 @@ public actor PlaybackStore {
             do {
                 let log = try HAR.load(from: url)
                 entries = log.entries
-            } catch {
-                // For record/passthrough workflows, missing archives should not be fatal.
-                // Strict playback should still surface missing files as an error.
+            } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
                 switch config.mode {
                 case .record, .passthrough:
                     entries = []
                 case .strict:
-                    throw error
+                    throw ReplayError.archiveNotFound(url)
                 }
+            } catch {
+                throw error
             }
 
         case .log(let log):

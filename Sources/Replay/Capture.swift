@@ -146,49 +146,6 @@ public final class CaptureURLProtocol: URLProtocol, @unchecked Sendable {
         dataTask?.cancel()
     }
 
-    private func shouldCapture(_ request: URLRequest) async -> Bool {
-        guard let config = await CaptureStore.shared.currentConfiguration else {
-            return false
-        }
-
-        if let matchers = config.matchers {
-            return matchers.matches(request)
-        }
-
-        return true
-    }
-
-    @Sendable
-    private func recordEntry(
-        request: URLRequest,
-        response: HTTPURLResponse,
-        data: Data,
-        startTime: Date,
-        duration: TimeInterval
-    ) async {
-        guard await shouldCapture(request) else { return }
-
-        do {
-            var entry = try HAR.Entry(
-                request: request,
-                response: response,
-                data: data,
-                startTime: startTime,
-                duration: duration
-            )
-
-            if let config = await CaptureStore.shared.currentConfiguration {
-                for filter in config.filters {
-                    entry = await filter.apply(to: entry)
-                }
-            }
-
-            await CaptureStore.shared.store(entry)
-        } catch {
-            // Intentionally avoid throwing from URLProtocol; log only.
-            NSLog("Replay: Failed to create HAR entry: \(String(describing: error))")
-        }
-    }
 }
 
 // MARK: - Capture Store (Actor for thread safety)

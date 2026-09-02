@@ -660,8 +660,9 @@ struct PlaybackTests {
             request.httpMethod = "GET"
             request.setValue("text/csv", forHTTPHeaderField: "Accept")
 
-            // Without `matchingRequestHeaders`, the stub's synthesized candidate request has no
-            // headers, so `.headers(["Accept"])` never matches a request that actually sets Accept.
+            // Without `matchingRequestHeaders`,
+            // the stub's synthesized candidate request has no headers,
+            // so `.headers(["Accept"])` never matches a request that actually sets Accept.
             await #expect(throws: Error.self) {
                 try await store.handleRequest(request)
             }
